@@ -31,13 +31,13 @@ function OptionCard({ icon, title, description, color, onPress, delay }: OptionC
 
   React.useEffect(() => {
     Animated.parallel([
-      Animated.timing(opacity, { toValue: 1, duration: 300, delay, useNativeDriver: true }),
-      Animated.spring(slideAnim, { toValue: 0, delay, useNativeDriver: true }),
+      Animated.timing(opacity, { toValue: 1, duration: 300, delay, useNativeDriver: false }),
+      Animated.spring(slideAnim, { toValue: 0, delay, useNativeDriver: false }),
     ]).start();
   }, []);
 
-  const handlePressIn = () => Animated.spring(scale, { toValue: 0.96, useNativeDriver: true }).start();
-  const handlePressOut = () => Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start();
+  const handlePressIn = () => Animated.spring(scale, { toValue: 0.96, useNativeDriver: false }).start();
+  const handlePressOut = () => Animated.spring(scale, { toValue: 1, useNativeDriver: false }).start();
 
   const handlePress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
