@@ -1,0 +1,20 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "PcnUnhCFsHB0Q5_l9YymN"
+uri = "file://artifacts/tiyeni/assets/images/icon.png"
+type = "image"
+title = "tiyeni app icon"
+
+[[generated]]
+id = "thZqZWrJNo-7H5jHRHH5x"
+uri = "file://artifacts/tiyeni/assets/images/hero_banner.png"
+type = "image"
+title = "tiyeni hero banner"
+
+[[generated]]
+id = "QruBfSWOnE25OMN5klGbE"
+uri = "file://artifacts/tiyeni/assets/images/parcel_illustration.png"
+type = "image"
+title = "parcel delivery illustration"

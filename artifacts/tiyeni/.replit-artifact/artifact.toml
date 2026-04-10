@@ -1,0 +1,27 @@
+kind = "mobile"
+previewPath = "/"
+title = "Tiyeni"
+version = "1.0.0"
+id = "artifacts/tiyeni"
+router = "expo-domain"
+
+[[integratedSkills]]
+name = "expo"
+version = "1.0.0"
+
+[[services]]
+ensurePreviewReachable = "/status"
+name = "expo"
+paths = [ "/" ]
+localPort = 23305
+
+[services.development]
+run = "pnpm --filter @workspace/tiyeni run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/tiyeni", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/tiyeni", "run", "serve" ]
+
+[services.env]
+PORT = "23305"
+BASE_PATH = "/"
