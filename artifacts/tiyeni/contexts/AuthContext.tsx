@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { api } from "@/lib/api";
 
 export type UserRole = "guest" | "basic" | "verified" | "admin";
 
@@ -17,6 +18,8 @@ export interface User {
 interface AuthContextValue {
   user: User | null;
   isLoading: boolean;
+  requestOtp: (phone: string, name?: string) => Promise<void>;
+  verifyOtp: (phone: string, otp: string, name?: string) => Promise<void>;
   login: (phone: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (updates: Partial<User>) => Promise<void>;
@@ -24,76 +27,76 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
-
-const STORAGE_KEY = "tiyeni_user";
-
-const DEMO_USER: User = {
-  id: "user_" + Date.now(),
-  name: "Chisomo Banda",
-  phone: "+265 999 123 456",
-  role: "basic",
-  rating: 4.7,
-  tripsCompleted: 12,
-};
+const TOKEN_KEY = "tiyeni_token";
+const REFRESH_TOKEN_KEY = "tiyeni_refresh_token";
+const USER_KEY = "tiyeni_user";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY)
-      .then((raw) => {
+    const restore = async () => {
+      try {
+        const token = await AsyncStorage.getItem(TOKEN_KEY);
+        if (token) {
+          const { user: u } = await api.me();
+          setUser(u);
+        } else {
+          // Fallback to cached user for offline
+          const raw = await AsyncStorage.getItem(USER_KEY);
+          if (raw) setUser(JSON.parse(raw));
+        }
+      } catch {
+        const raw = await AsyncStorage.getItem(USER_KEY);
         if (raw) setUser(JSON.parse(raw));
-      })
-      .finally(() => setIsLoading(false));
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    restore();
   }, []);
 
-  const persist = useCallback(async (u: User | null) => {
-    if (u) {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(u));
-    } else {
-      await AsyncStorage.removeItem(STORAGE_KEY);
-    }
+  const requestOtp = useCallback(async (phone: string, name?: string) => {
+    await api.requestOtp(phone, name);
   }, []);
 
-  const login = useCallback(
-    async (phone: string, name: string) => {
-      const newUser: User = {
-        ...DEMO_USER,
-        id: "user_" + Date.now().toString() + Math.random().toString(36).substr(2, 5),
-        phone,
-        name: name || DEMO_USER.name,
-      };
-      setUser(newUser);
-      await persist(newUser);
-    },
-    [persist]
-  );
+  const verifyOtp = useCallback(async (phone: string, otp: string, name?: string) => {
+    const { user: u, accessToken, refreshToken, token } = await api.verifyOtp(phone, otp, name);
+    await AsyncStorage.setItem(TOKEN_KEY, accessToken || token);
+    await AsyncStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+    await AsyncStorage.setItem(USER_KEY, JSON.stringify(u));
+    setUser(u);
+  }, []);
+
+  const login = useCallback(async (phone: string, name: string) => {
+    const { user: u, accessToken, refreshToken, token } = await api.login(phone, name);
+    await AsyncStorage.setItem(TOKEN_KEY, accessToken || token);
+    await AsyncStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+    await AsyncStorage.setItem(USER_KEY, JSON.stringify(u));
+    setUser(u);
+  }, []);
 
   const logout = useCallback(async () => {
+    await api.logout().catch(() => undefined);
+    await AsyncStorage.multiRemove([TOKEN_KEY, REFRESH_TOKEN_KEY, USER_KEY]);
     setUser(null);
-    await persist(null);
-  }, [persist]);
+  }, []);
 
-  const updateUser = useCallback(
-    async (updates: Partial<User>) => {
-      if (!user) return;
-      const updated = { ...user, ...updates };
-      setUser(updated);
-      await persist(updated);
-    },
-    [user, persist]
-  );
+  const updateUser = useCallback(async (updates: Partial<User>) => {
+    if (!user) return;
+    const updated = { ...user, ...updates };
+    await AsyncStorage.setItem(USER_KEY, JSON.stringify(updated));
+    setUser(updated);
+  }, [user]);
 
   const requestVerification = useCallback(async () => {
     if (!user) return;
-    const updated: User = { ...user, verificationStatus: "pending" };
-    setUser(updated);
-    await persist(updated);
-  }, [user, persist]);
+    await updateUser({ verificationStatus: "pending" });
+  }, [user, updateUser]);
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, updateUser, requestVerification }}>
+    <AuthContext.Provider value={{ user, isLoading, requestOtp, verifyOtp, login, logout, updateUser, requestVerification }}>
       {children}
     </AuthContext.Provider>
   );

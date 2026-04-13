@@ -3,7 +3,12 @@
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",
-    "types": ["node"]
+    "types": ["node"],
+    "paths": {
+      "@workspace/db": ["../../lib/db/src/index.ts"],
+      "@workspace/db/schema": ["../../lib/db/src/schema/index.ts"],
+      "@workspace/db/schema/*": ["../../lib/db/src/schema/*"]
+    }
   },
   "include": ["src"],
   "references": [

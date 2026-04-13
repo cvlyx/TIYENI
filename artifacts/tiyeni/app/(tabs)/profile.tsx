@@ -1,17 +1,15 @@
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React from "react";
 import {
-  Pressable,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+  Platform, Pressable, ScrollView,
+  StyleSheet, Text, View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StarRating } from "@/components/StarRating";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
+import { useAppData } from "@/contexts/AppDataContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { useColors } from "@/hooks/useColors";
@@ -21,9 +19,11 @@ interface SettingRowProps {
   label: string;
   onPress: () => void;
   danger?: boolean;
+  badge?: number;
+  rightLabel?: string;
 }
 
-function SettingRow({ icon, label, onPress, danger = false }: SettingRowProps) {
+function SettingRow({ icon, label, onPress, danger = false, badge, rightLabel }: SettingRowProps) {
   const colors = useColors();
   return (
     <Pressable
@@ -34,15 +34,19 @@ function SettingRow({ icon, label, onPress, danger = false }: SettingRowProps) {
       ]}
     >
       <View style={[styles.settingIcon, { backgroundColor: danger ? colors.destructive + "15" : colors.muted }]}>
-        <Ionicons
-          name={icon as any}
-          size={18}
-          color={danger ? colors.destructive : colors.primary}
-        />
+        <Ionicons name={icon as any} size={18} color={danger ? colors.destructive : colors.primary} />
       </View>
       <Text style={[styles.settingLabel, { color: danger ? colors.destructive : colors.foreground }]}>
         {label}
       </Text>
+      {badge !== undefined && badge > 0 && (
+        <View style={[styles.badge, { backgroundColor: colors.primary }]}>
+          <Text style={styles.badgeText}>{badge > 9 ? "9+" : badge}</Text>
+        </View>
+      )}
+      {rightLabel && (
+        <Text style={[styles.rightLabel, { color: colors.mutedForeground }]}>{rightLabel}</Text>
+      )}
       <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} />
     </Pressable>
   );
@@ -53,7 +57,7 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { user, logout, requestVerification } = useAuth();
   const { showToast } = useToast();
-
+  const { walletBalance, unreadNotifications } = useAppData();
   const topPadding = Platform.OS === "web" ? insets.top + 67 : insets.top;
   const bottomPadding = Platform.OS === "web" ? 34 : insets.bottom;
 
@@ -61,11 +65,6 @@ export default function ProfileScreen() {
     await logout();
     showToast("Signed out successfully", "info");
     router.replace("/(auth)/welcome");
-  };
-
-  const handleRequestVerification = async () => {
-    await requestVerification();
-    showToast("Verification request submitted!", "success");
   };
 
   if (!user) {
@@ -88,24 +87,17 @@ export default function ProfileScreen() {
     );
   }
 
-  const initials = user.name
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-
-  const verificationPending = user.verificationStatus === "pending";
+  const initials = user.name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
   const isVerified = user.role === "verified" || user.verificationStatus === "approved";
+  const verificationPending = user.verificationStatus === "pending";
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: bottomPadding + 100 }}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={[styles.heroSection, { paddingTop: topPadding + 20, backgroundColor: colors.primary }]}>
-          <View style={[styles.avatarCircle, { backgroundColor: "rgba(255,255,255,0.25)" }]}>
+      <ScrollView contentContainerStyle={{ paddingBottom: bottomPadding + 100 }} showsVerticalScrollIndicator={false}>
+        {/* Hero */}
+        <View style={[styles.heroSection, { paddingTop: topPadding + 20 }]}>
+          <LinearGradient colors={["#0D2B12", "#2E7D32"]} style={StyleSheet.absoluteFill} />
+          <View style={[styles.avatarCircle, { backgroundColor: "rgba(255,255,255,0.2)" }]}>
             <Text style={styles.avatarInitials}>{initials}</Text>
           </View>
           <Text style={styles.userName}>{user.name}</Text>
@@ -116,6 +108,7 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        {/* Stats */}
         <View style={[styles.statsRow, { backgroundColor: colors.card }]}>
           <View style={styles.statItem}>
             <Text style={[styles.statValue, { color: colors.foreground }]}>{user.tripsCompleted}</Text>
@@ -128,16 +121,38 @@ export default function ProfileScreen() {
           </View>
           <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
           <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: colors.foreground }]}>
-              {isVerified ? "Yes" : "No"}
+            <Text style={[styles.statValue, { color: isVerified ? colors.success : colors.mutedForeground }]}>
+              {isVerified ? "✓" : "No"}
             </Text>
             <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>Verified</Text>
           </View>
         </View>
 
+        {/* Wallet card */}
+        <Pressable onPress={() => router.push("/wallet/index" as any)} style={styles.walletCard}>
+          <LinearGradient colors={["#1A4A1E", "#2E7D32"]} style={styles.walletGrad}>
+            <View style={styles.walletLeft}>
+              <Ionicons name="wallet-outline" size={22} color="rgba(255,255,255,0.8)" />
+              <View>
+                <Text style={styles.walletLabel}>Tiyeni Wallet</Text>
+                <Text style={styles.walletBalance}>MWK {walletBalance.toLocaleString()}</Text>
+              </View>
+            </View>
+            <View style={styles.walletRight}>
+              <Pressable
+                onPress={() => router.push("/wallet/index" as any)}
+                style={styles.topUpBtn}
+              >
+                <Text style={styles.topUpBtnText}>Top Up</Text>
+              </Pressable>
+            </View>
+          </LinearGradient>
+        </Pressable>
+
+        {/* Verification banners */}
         {!isVerified && !verificationPending && (
           <Pressable
-            onPress={handleRequestVerification}
+            onPress={() => router.push("/verify/index" as any)}
             style={[styles.verifyBanner, { backgroundColor: colors.accent + "18", borderColor: colors.accent }]}
           >
             <View style={styles.verifyBannerContent}>
@@ -167,13 +182,34 @@ export default function ProfileScreen() {
           </View>
         )}
 
+        {/* Account section */}
         <View style={[styles.section, { backgroundColor: colors.card }]}>
           <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>Account</Text>
+          <SettingRow icon="notifications-outline" label="Notifications" badge={unreadNotifications}
+            onPress={() => router.push("/notifications/index" as any)} />
+          <SettingRow icon="map-outline" label="Browse Routes" onPress={() => router.push("/routes/index" as any)} />
+          <SettingRow icon="search-outline" label="Search Trips & Parcels" onPress={() => router.push("/search/index" as any)} />
           <SettingRow icon="person-outline" label="Edit Profile" onPress={() => showToast("Coming soon", "info")} />
-          <SettingRow icon="notifications-outline" label="Notifications" onPress={() => showToast("Coming soon", "info")} />
           <SettingRow icon="lock-closed-outline" label="Privacy & Security" onPress={() => showToast("Coming soon", "info")} />
         </View>
 
+        {/* Safety section */}
+        <View style={[styles.section, { backgroundColor: colors.card }]}>
+          <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>Safety</Text>
+          <SettingRow
+            icon="shield-checkmark-outline"
+            label={isVerified ? "ID Verified" : "Verify My Identity"}
+            rightLabel={isVerified ? "✓" : undefined}
+            onPress={() => isVerified ? showToast("Already verified!", "success") : router.push("/verify/index" as any)}
+          />
+          <SettingRow
+            icon="share-social-outline"
+            label="Emergency Share"
+            onPress={() => showToast("Share trip details: tap this during a trip to send your location to a trusted contact", "info")}
+          />
+        </View>
+
+        {/* Support section */}
         <View style={[styles.section, { backgroundColor: colors.card }]}>
           <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>Support</Text>
           <SettingRow icon="help-circle-outline" label="Help Center" onPress={() => showToast("Coming soon", "info")} />
@@ -193,123 +229,47 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  headerBar: {
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-  },
+  headerBar: { paddingHorizontal: 20, paddingBottom: 16 },
   headerTitle: { fontSize: 22, fontFamily: "Inter_700Bold" },
-  heroSection: {
-    alignItems: "center",
-    paddingBottom: 28,
-    paddingHorizontal: 20,
-  },
-  avatarCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 12,
-  },
-  avatarInitials: {
-    color: "#fff",
-    fontSize: 28,
-    fontFamily: "Inter_700Bold",
-  },
-  userName: {
-    color: "#fff",
-    fontSize: 22,
-    fontFamily: "Inter_700Bold",
-    marginBottom: 4,
-  },
-  userPhone: {
-    color: "rgba(255,255,255,0.75)",
-    fontSize: 14,
-    fontFamily: "Inter_400Regular",
-    marginBottom: 10,
-  },
-  metaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  statsRow: {
-    flexDirection: "row",
-    marginHorizontal: 16,
-    marginTop: 12,
-    borderRadius: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-    paddingVertical: 16,
-  },
+  heroSection: { alignItems: "center", paddingBottom: 28, paddingHorizontal: 20, overflow: "hidden" },
+  avatarCircle: { width: 80, height: 80, borderRadius: 40, alignItems: "center", justifyContent: "center", marginBottom: 12 },
+  avatarInitials: { color: "#fff", fontSize: 28, fontFamily: "Inter_700Bold" },
+  userName: { color: "#fff", fontSize: 22, fontFamily: "Inter_700Bold", marginBottom: 4 },
+  userPhone: { color: "rgba(255,255,255,0.75)", fontSize: 14, fontFamily: "Inter_400Regular", marginBottom: 10 },
+  metaRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  statsRow: { flexDirection: "row", marginHorizontal: 16, marginTop: 12, borderRadius: 16, paddingVertical: 16, elevation: 2 },
   statItem: { flex: 1, alignItems: "center" },
   statValue: { fontSize: 20, fontFamily: "Inter_700Bold", marginBottom: 2 },
   statLabel: { fontSize: 12, fontFamily: "Inter_400Regular" },
   statDivider: { width: 1, alignSelf: "stretch", marginVertical: 4 },
+
+  walletCard: { marginHorizontal: 16, marginTop: 12, borderRadius: 16, overflow: "hidden" },
+  walletGrad: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 16 },
+  walletLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
+  walletLabel: { color: "rgba(255,255,255,0.7)", fontSize: 12, fontFamily: "Inter_400Regular", marginBottom: 2 },
+  walletBalance: { color: "#fff", fontSize: 20, fontFamily: "Inter_700Bold" },
+  walletRight: {},
+  topUpBtn: { backgroundColor: "rgba(255,255,255,0.2)", paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
+  topUpBtnText: { color: "#fff", fontSize: 13, fontFamily: "Inter_600SemiBold" },
+
   verifyBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginHorizontal: 16,
-    marginTop: 16,
-    padding: 14,
-    borderRadius: 14,
-    borderWidth: 1.5,
+    flexDirection: "row", alignItems: "center",
+    marginHorizontal: 16, marginTop: 12, padding: 14, borderRadius: 14, borderWidth: 1.5,
   },
-  verifyBannerContent: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
+  verifyBannerContent: { flex: 1, flexDirection: "row", alignItems: "center", gap: 12 },
   verifyBannerText: { flex: 1 },
   verifyBannerTitle: { fontSize: 15, fontFamily: "Inter_600SemiBold", marginBottom: 2 },
   verifyBannerSubtitle: { fontSize: 13, fontFamily: "Inter_400Regular" },
-  section: {
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 14,
-    overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 1,
-  },
-  sectionTitle: {
-    fontSize: 12,
-    fontFamily: "Inter_600SemiBold",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 4,
-  },
-  settingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 12,
-  },
-  settingIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  section: { marginHorizontal: 16, marginTop: 16, borderRadius: 14, overflow: "hidden" },
+  sectionTitle: { fontSize: 12, fontFamily: "Inter_600SemiBold", textTransform: "uppercase", letterSpacing: 0.5, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 4 },
+  settingRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
+  settingIcon: { width: 34, height: 34, borderRadius: 8, alignItems: "center", justifyContent: "center" },
   settingLabel: { flex: 1, fontSize: 15, fontFamily: "Inter_400Regular" },
+  badge: { minWidth: 20, height: 20, borderRadius: 10, alignItems: "center", justifyContent: "center", paddingHorizontal: 4 },
+  badgeText: { color: "#fff", fontSize: 11, fontFamily: "Inter_700Bold" },
+  rightLabel: { fontSize: 14, fontFamily: "Inter_500Medium" },
   version: { textAlign: "center", fontSize: 12, marginTop: 24, marginBottom: 8 },
-  center: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingTop: 80,
-    gap: 12,
-  },
+  center: { flex: 1, alignItems: "center", justifyContent: "center", paddingTop: 80, gap: 12 },
   emptyTitle: { fontSize: 18, fontFamily: "Inter_600SemiBold" },
   signInBtn: { paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
   signInText: { color: "#fff", fontSize: 15, fontFamily: "Inter_600SemiBold" },

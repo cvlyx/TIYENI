@@ -1,4 +1,3 @@
-import { BlurView } from "expo-blur";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
@@ -15,6 +14,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { useColors } from "@/hooks/useColors";
 
@@ -25,32 +25,28 @@ function GlassInput({
   keyboardType,
   maxLength,
   prefix,
-  colors,
 }: any) {
-  const [focused, setFocused] = useState(false);
   const focusAnim = useRef(new Animated.Value(0)).current;
 
   const handleFocus = () => {
-    setFocused(true);
     Animated.timing(focusAnim, { toValue: 1, duration: 200, useNativeDriver: false }).start();
   };
   const handleBlur = () => {
-    setFocused(false);
     Animated.timing(focusAnim, { toValue: 0, duration: 200, useNativeDriver: false }).start();
   };
 
   const borderColor = focusAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: ["rgba(255,255,255,0.12)", "rgba(76,175,80,0.7)"],
+    outputRange: ["rgba(255,255,255,0.15)", "rgba(76,175,80,0.8)"],
+  });
+
+  const backgroundColor = focusAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["rgba(255,255,255,0.08)", "rgba(76,175,80,0.1)"],
   });
 
   return (
-    <Animated.View style={[styles.inputWrap, { borderColor }]}>
-      {Platform.OS === "ios" ? (
-        <BlurView intensity={12} tint="dark" style={StyleSheet.absoluteFill} />
-      ) : (
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(255,255,255,0.07)" }]} />
-      )}
+    <Animated.View style={[styles.inputWrap, { borderColor, backgroundColor }]}>
       {prefix && (
         <>
           <Text style={styles.prefixText}>{prefix}</Text>
@@ -62,7 +58,7 @@ function GlassInput({
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor="rgba(255,255,255,0.3)"
+        placeholderTextColor="rgba(255,255,255,0.35)"
         keyboardType={keyboardType}
         maxLength={maxLength}
         onFocus={handleFocus}
@@ -76,6 +72,7 @@ export default function LoginScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { showToast } = useToast();
+  const { requestOtp } = useAuth();
   const [phone, setPhone] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const topPadding = Platform.OS === "web" ? insets.top + 67 : insets.top;
@@ -86,7 +83,13 @@ export default function LoginScreen() {
       return;
     }
     setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
+    try {
+      await requestOtp(phone);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Failed to send OTP", "error");
+      setIsLoading(false);
+      return;
+    }
     router.push({ pathname: "/(auth)/otp", params: { phone, name: "" } } as any);
     setIsLoading(false);
   };

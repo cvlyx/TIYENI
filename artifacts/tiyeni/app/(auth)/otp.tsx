@@ -18,11 +18,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 
 const OTP_LENGTH = 6;
-const DEMO_OTP = "123456";
 
 export default function OTPScreen() {
   const insets = useSafeAreaInsets();
-  const { login } = useAuth();
+  const { verifyOtp, requestOtp } = useAuth();
   const { showToast } = useToast();
   const params = useLocalSearchParams<{ phone: string; name: string }>();
   const [otp, setOtp] = useState(Array(OTP_LENGTH).fill(""));
@@ -54,11 +53,15 @@ export default function OTPScreen() {
   const handleVerify = async () => {
     const code = otp.join("");
     if (code.length < OTP_LENGTH) { showToast("Enter the 6-digit code", "error"); return; }
-    if (code !== DEMO_OTP) { showToast("Wrong code. Try 123456", "error"); return; }
     setIsLoading(true);
     Animated.spring(successAnim, { toValue: 1, useNativeDriver: false }).start();
-    await new Promise((r) => setTimeout(r, 800));
-    await login(params.phone || "", params.name || "");
+    try {
+      await verifyOtp(params.phone || "", code, params.name || undefined);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Verification failed", "error");
+      setIsLoading(false);
+      return;
+    }
     showToast("Welcome to Tiyeni!", "success");
     router.replace("/(tabs)/");
     setIsLoading(false);
@@ -95,17 +98,13 @@ export default function OTPScreen() {
             6-digit code sent to{"\n"}
             <Text style={styles.phoneHighlight}>+265 {params.phone}</Text>
           </Text>
-          <View style={styles.demoHint}>
-            <Ionicons name="information-circle" size={14} color="#F59E0B" />
-            <Text style={styles.demoText}>Demo: use code 123456</Text>
-          </View>
         </View>
 
         <View style={styles.otpRow}>
           {otp.map((digit, idx) => (
             <View key={idx} style={[styles.otpWrap, digit ? styles.otpFilled : {}]}>
               {Platform.OS === "ios" && (
-                <BlurView intensity={10} tint="dark" style={StyleSheet.absoluteFill} />
+                <BlurView intensity={10} tint="dark" style={[StyleSheet.absoluteFill, { pointerEvents: "none" } as any]} />
               )}
               <TextInput
                 ref={(r) => { inputs.current[idx] = r; }}
@@ -132,7 +131,19 @@ export default function OTPScreen() {
           </LinearGradient>
         </Pressable>
 
-        <Pressable onPress={() => countdown === 0 && setCountdown(30)} style={styles.resend}>
+        <Pressable
+          onPress={async () => {
+            if (countdown > 0) return;
+            try {
+              await requestOtp(params.phone || "", params.name || undefined);
+              showToast("OTP sent", "success");
+              setCountdown(30);
+            } catch (error) {
+              showToast(error instanceof Error ? error.message : "Failed to resend OTP", "error");
+            }
+          }}
+          style={styles.resend}
+        >
           <Text style={[styles.resendText, { color: countdown > 0 ? "rgba(255,255,255,0.35)" : "#81C784" }]}>
             {countdown > 0 ? `Resend in ${countdown}s` : "Resend code"}
           </Text>
@@ -170,18 +181,6 @@ const styles = StyleSheet.create({
   title: { color: "#fff", fontSize: 26, fontFamily: "Inter_700Bold", marginBottom: 8, letterSpacing: -0.3 },
   subtitle: { color: "rgba(255,255,255,0.55)", fontSize: 15, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 22, marginBottom: 12 },
   phoneHighlight: { color: "#81C784", fontFamily: "Inter_600SemiBold" },
-  demoHint: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "rgba(245,158,11,0.12)",
-    borderWidth: 1,
-    borderColor: "rgba(245,158,11,0.25)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  demoText: { color: "#F59E0B", fontSize: 12, fontFamily: "Inter_500Medium" },
   otpRow: { flexDirection: "row", gap: 10, justifyContent: "center", marginBottom: 32 },
   otpWrap: {
     width: 46,
