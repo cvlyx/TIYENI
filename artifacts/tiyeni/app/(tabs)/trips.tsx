@@ -14,7 +14,9 @@ import { AnimatedListItem } from "@/components/AnimatedListItem";
 import { TripCard } from "@/components/TripCard";
 import { Trip, ParcelRequest, Booking, useAppData } from "@/contexts/AppDataContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/contexts/ToastContext";
 import { useColors } from "@/hooks/useColors";
+import { api } from "@/lib/api";
 
 type TabType = "trips" | "parcels" | "bookings";
 
@@ -77,6 +79,7 @@ export default function MyTripsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { myTrips, myParcels, bookings, refresh } = useAppData();
+  const { showToast } = useToast();
   const { user } = useAuth();
   const [tab, setTab] = useState<TabType>("trips");
   const topPadding = Platform.OS === "web" ? insets.top + 67 : insets.top;
@@ -105,7 +108,6 @@ export default function MyTripsScreen() {
   const pendingBookingCount = myBookings.filter((b) => b.status === "pending").length;
 
   const renderParcelActions = (parcel: ParcelRequest) => {
-    const booking = bookings.find((b) => b.parcelId === parcel.id);
     const statusColors: Record<ParcelRequest["status"], string> = {
       open: colors.mutedForeground,
       matched: colors.accent,
@@ -134,6 +136,22 @@ export default function MyTripsScreen() {
             {parcel.status === "open" ? "Find trips" : "View booking"}
           </Text>
         </Pressable>
+        {parcel.status === "open" && (
+          <Pressable
+            onPress={async () => {
+              try {
+                await api.deleteParcel(parcel.id);
+                await refresh();
+                showToast("Parcel deleted", "info");
+              } catch (e: any) {
+                showToast(e?.message ?? "Failed to delete", "error");
+              }
+            }}
+            style={[styles.matchBtn, { backgroundColor: colors.destructive + "15" }]}
+          >
+            <Ionicons name="trash-outline" size={13} color={colors.destructive} />
+          </Pressable>
+        )}
       </View>
     );
   };

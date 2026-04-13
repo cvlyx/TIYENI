@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PressableButton } from "@/components/PressableButton";
+import { CityPicker } from "@/components/CityPicker";
 import { useAppData } from "@/contexts/AppDataContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
@@ -115,30 +116,14 @@ export default function OfferTripScreen() {
           <View style={styles.routeCard}>
             <View>
               <Text style={[styles.label, { color: colors.mutedForeground }]}>From</Text>
-              <TextInput
-                style={inputStyle("from")}
-                placeholder="e.g. Lilongwe"
-                placeholderTextColor={colors.mutedForeground}
-                value={from}
-                onChangeText={setFrom}
-                onFocus={() => setFocus("from")}
-                onBlur={() => setFocus(null)}
-              />
+              <CityPicker value={from} onChange={setFrom} placeholder="Departure city" exclude={to} />
             </View>
             <View style={styles.arrowCenter}>
               <Ionicons name="arrow-down" size={20} color={colors.primary} />
             </View>
             <View>
               <Text style={[styles.label, { color: colors.mutedForeground }]}>To</Text>
-              <TextInput
-                style={inputStyle("to")}
-                placeholder="e.g. Blantyre"
-                placeholderTextColor={colors.mutedForeground}
-                value={to}
-                onChangeText={setTo}
-                onFocus={() => setFocus("to")}
-                onBlur={() => setFocus(null)}
-              />
+              <CityPicker value={to} onChange={setTo} placeholder="Destination city" exclude={from} />
             </View>
           </View>
 

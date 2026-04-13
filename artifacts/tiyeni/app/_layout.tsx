@@ -40,6 +40,7 @@ function RootLayoutNav() {
       <Stack.Screen name="profile/privacy" options={{ headerShown: false }} />
       <Stack.Screen name="profile/help" options={{ headerShown: false }} />
       <Stack.Screen name="profile/terms" options={{ headerShown: false }} />
+      <Stack.Screen name="user/[id]" options={{ headerShown: false }} />
     </Stack>
   );
 }

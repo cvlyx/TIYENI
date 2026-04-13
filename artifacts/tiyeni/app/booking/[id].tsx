@@ -17,7 +17,7 @@ export default function BookingScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { bookings, acceptBooking, declineBooking, collectParcel, confirmDelivery } = useAppData();
+  const { bookings, acceptBooking, declineBooking, collectParcel, confirmDelivery, cancelBooking } = useAppData();
   const { showToast } = useToast();
   const [otpInput, setOtpInput] = useState("");
   const [showOtp, setShowOtp] = useState(false);
@@ -198,6 +198,21 @@ export default function BookingScreen() {
           <Pressable onPress={handleDelivered} style={[styles.fullBtn, { backgroundColor: colors.success }]}>
             <Ionicons name="checkmark-circle" size={20} color="#fff" />
             <Text style={styles.fullBtnText}>Confirm Delivery</Text>
+          </Pressable>
+        )}
+
+        {/* Requester can cancel pending/accepted bookings */}
+        {isRequester && ["pending", "accepted"].includes(booking.status) && (
+          <Pressable
+            onPress={async () => {
+              await cancelBooking(booking.id);
+              showToast("Booking cancelled", "info");
+              router.back();
+            }}
+            style={[styles.fullBtn, { backgroundColor: colors.destructive + "15", marginTop: 8 }]}
+          >
+            <Ionicons name="close-circle-outline" size={20} color={colors.destructive} />
+            <Text style={[styles.fullBtnText, { color: colors.destructive }]}>Cancel Booking</Text>
           </Pressable>
         )}
 

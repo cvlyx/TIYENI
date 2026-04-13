@@ -58,7 +58,19 @@ router.post("/trips", requireAuth, async (req, res) => {
   res.status(201).json({ trip: { ...trip, type: "trip", userName: user.name, userRating: user.rating, isVerified: user.role === "verified" } });
 });
 
-// DELETE /api/trips/:id
+// PATCH /api/trips/:id — edit trip
+router.patch("/trips/:id", requireAuth, async (req, res) => {
+  const user = getUser(req);
+  const tripId = String(req.params.id);
+  const [trip] = await db.select().from(tripsTable).where(eq(tripsTable.id, tripId)).limit(1);
+  if (!trip) { res.status(404).json({ error: "Not found" }); return; }
+  if (trip.userId !== user.id) { res.status(403).json({ error: "Forbidden" }); return; }
+  const parsed = CreateTripSchema.partial().safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Invalid input" }); return; }
+  await db.update(tripsTable).set(parsed.data).where(eq(tripsTable.id, tripId));
+  const [updated] = await db.select().from(tripsTable).where(eq(tripsTable.id, tripId)).limit(1);
+  res.json({ trip: { ...updated, type: "trip", userName: user.name, userRating: user.rating, isVerified: user.role === "verified" } });
+});
 router.delete("/trips/:id", requireAuth, async (req, res) => {
   const user = getUser(req);
   const tripId = String(req.params.id);

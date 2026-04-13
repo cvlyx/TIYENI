@@ -86,6 +86,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const updateUser = useCallback(async (updates: Partial<User>) => {
     if (!user) return;
+    try {
+      if (updates.name) {
+        const { user: updated } = await api.updateProfile({ name: updates.name });
+        const merged = { ...user, ...updated };
+        await AsyncStorage.setItem(USER_KEY, JSON.stringify(merged));
+        setUser(merged);
+        return;
+      }
+    } catch {}
+    // Fallback to local update
     const updated = { ...user, ...updates };
     await AsyncStorage.setItem(USER_KEY, JSON.stringify(updated));
     setUser(updated);

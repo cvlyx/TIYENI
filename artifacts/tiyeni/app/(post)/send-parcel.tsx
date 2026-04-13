@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PressableButton } from "@/components/PressableButton";
+import { CityPicker } from "@/components/CityPicker";
 import { useAppData, ParcelSize } from "@/contexts/AppDataContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
@@ -136,30 +137,14 @@ export default function SendParcelScreen() {
           <View style={styles.form}>
             <View>
               <Text style={[styles.label, { color: colors.mutedForeground }]}>Pickup location</Text>
-              <TextInput
-                style={inputStyle("from")}
-                placeholder="e.g. Lilongwe, Area 18"
-                placeholderTextColor={colors.mutedForeground}
-                value={from}
-                onChangeText={setFrom}
-                onFocus={() => setFocus("from")}
-                onBlur={() => setFocus(null)}
-              />
+              <CityPicker value={from} onChange={setFrom} placeholder="Pickup city" exclude={to} />
             </View>
             <View style={styles.arrowRow}>
               <Ionicons name="arrow-down" size={20} color={colors.primary} />
             </View>
             <View>
               <Text style={[styles.label, { color: colors.mutedForeground }]}>Drop-off location</Text>
-              <TextInput
-                style={inputStyle("to")}
-                placeholder="e.g. Blantyre, Limbe"
-                placeholderTextColor={colors.mutedForeground}
-                value={to}
-                onChangeText={setTo}
-                onFocus={() => setFocus("to")}
-                onBlur={() => setFocus(null)}
-              />
+              <CityPicker value={to} onChange={setTo} placeholder="Drop-off city" exclude={from} />
             </View>
           </View>
         )}

@@ -49,7 +49,33 @@ router.post("/parcels", requireAuth, async (req, res) => {
   res.status(201).json({ parcel: { ...parcel, type: "parcel", userName: user.name, userRating: user.rating, isVerified: user.role === "verified" } });
 });
 
-// GET /api/parcels/:id/matches — find trips that can carry this parcel
+// PATCH /api/parcels/:id — edit parcel
+router.patch("/parcels/:id", requireAuth, async (req, res) => {
+  const user = getUser(req);
+  const parcelId = String(req.params.id);
+  const [parcel] = await db.select().from(parcelsTable).where(eq(parcelsTable.id, parcelId)).limit(1);
+  if (!parcel) { res.status(404).json({ error: "Not found" }); return; }
+  if (parcel.userId !== user.id) { res.status(403).json({ error: "Forbidden" }); return; }
+  const parsed = CreateParcelSchema.partial().safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Invalid input" }); return; }
+  await db.update(parcelsTable).set(parsed.data).where(eq(parcelsTable.id, parcelId));
+  const [updated] = await db.select().from(parcelsTable).where(eq(parcelsTable.id, parcelId)).limit(1);
+  res.json({ parcel: { ...updated, type: "parcel", userName: user.name, userRating: user.rating, isVerified: user.role === "verified" } });
+});
+
+// DELETE /api/parcels/:id
+router.delete("/parcels/:id", requireAuth, async (req, res) => {
+  const user = getUser(req);
+  const parcelId = String(req.params.id);
+  const [parcel] = await db.select().from(parcelsTable).where(eq(parcelsTable.id, parcelId)).limit(1);
+  if (!parcel) { res.status(404).json({ error: "Not found" }); return; }
+  if (parcel.userId !== user.id) { res.status(403).json({ error: "Forbidden" }); return; }
+  if (parcel.status !== "open") { res.status(400).json({ error: "Cannot delete a matched or in-transit parcel" }); return; }
+  await db.delete(parcelsTable).where(eq(parcelsTable.id, parcelId));
+  res.json({ success: true });
+});
+
+// GET /api/parcels/:id/matches - find trips that can carry this parcel
 router.get("/parcels/:id/matches", async (req, res) => {
   const parcelId = String(req.params.id);
   const [parcel] = await db.select().from(parcelsTable).where(eq(parcelsTable.id, parcelId)).limit(1);

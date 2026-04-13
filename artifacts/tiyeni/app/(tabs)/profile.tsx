@@ -205,7 +205,15 @@ export default function ProfileScreen() {
           <SettingRow
             icon="share-social-outline"
             label="Emergency Share"
-            onPress={() => showToast("Share trip details: tap this during a trip to send your location to a trusted contact", "info")}
+            onPress={async () => {
+              try {
+                const { Share } = await import("react-native");
+                await Share.share({
+                  message: `🚨 I'm currently on a Tiyeni trip. My phone: ${user.phone}. Please check on me if you don't hear from me soon.`,
+                  title: "Emergency Location Share",
+                });
+              } catch {}
+            }}
           />
         </View>
 

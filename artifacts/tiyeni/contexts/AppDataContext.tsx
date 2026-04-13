@@ -132,6 +132,7 @@ interface AppDataContextValue {
   createBooking: (tripId: string, parcelId: string, trip: Trip, parcel: ParcelRequest, currentUserId: string, currentUserName: string) => Promise<Booking>;
   acceptBooking: (bookingId: string) => Promise<void>;
   declineBooking: (bookingId: string) => Promise<void>;
+  cancelBooking: (bookingId: string) => Promise<void>;
   collectParcel: (bookingId: string, otp: string) => Promise<boolean>;
   confirmDelivery: (bookingId: string) => Promise<void>;
 
@@ -315,6 +316,28 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user]);
 
+  // Poll every 30 seconds for new notifications/bookings when user is logged in
+  useEffect(() => {
+    if (!user) return;
+    const interval = setInterval(async () => {
+      try {
+        const data = await api.poll();
+        // If unread count changed, refresh notifications
+        const currentUnread = [...notifications, ...localNotifs].filter((n) => !n.read).length;
+        if (data.unreadNotifications > currentUnread) {
+          const notifsRes = await api.getNotifications();
+          setNotifications((notifsRes.notifications ?? []).map(normalizeNotification));
+        }
+        // If pending bookings changed, refresh bookings
+        if (data.pendingBookings > 0) {
+          const bookingsRes = await api.getBookings();
+          setBookings((bookingsRes.bookings ?? []).map(normalizeBooking));
+        }
+      } catch {}
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [user, notifications, localNotifs]);
+
   const addNotification = useCallback((n: Omit<AppNotification, "id" | "createdAt" | "read">) => {
     const notif: AppNotification = {
       ...n,
@@ -403,6 +426,16 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     addNotification({ type: "booking_declined", title: "Booking declined", body: "The carrier declined the parcel request", relatedId: bookingId });
   }, [updateParcelStatus, addNotification]);
 
+  const cancelBooking = useCallback(async (bookingId: string) => {
+    await api.cancelBooking(bookingId);
+    setBookings((prev) => {
+      const b = prev.find((x) => x.id === bookingId);
+      if (b) updateParcelStatus(b.parcelId, "open");
+      return prev.map((x) => x.id === bookingId ? { ...x, status: "declined" as const } : x);
+    });
+    addNotification({ type: "booking_declined", title: "Booking cancelled", body: "You cancelled the booking", relatedId: bookingId });
+  }, [updateParcelStatus, addNotification]);
+
   const collectParcel = useCallback(async (bookingId: string, otp: string): Promise<boolean> => {
     try {
       await api.collectParcel(bookingId, otp);
@@ -456,7 +489,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       bookings, reviews, notifications: allNotifications, unreadNotifications,
       walletBalance, transactions, isLoading,
       refresh, addTrip, addParcelRequest, sendMessage, startConversation, updateParcelStatus,
-      createBooking, acceptBooking, declineBooking, collectParcel, confirmDelivery,
+      createBooking, acceptBooking, declineBooking, cancelBooking, collectParcel, confirmDelivery,
       addReview, markNotificationsRead, addNotification,
       topUpWallet, getMatchedTrips,
     }}>

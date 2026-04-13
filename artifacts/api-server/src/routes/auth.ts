@@ -217,4 +217,32 @@ router.get("/auth/me", requireAuth, async (req, res) => {
   res.json({ user });
 });
 
+// GET /api/users/:id — public profile
+router.get("/users/:id", async (req, res) => {
+  const userId = String(req.params.id);
+  const [user] = await db.select({
+    id: usersTable.id,
+    name: usersTable.name,
+    rating: usersTable.rating,
+    role: usersTable.role,
+    tripsCompleted: usersTable.tripsCompleted,
+    verificationStatus: usersTable.verificationStatus,
+    createdAt: usersTable.createdAt,
+  }).from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+  if (!user) { res.status(404).json({ error: "User not found" }); return; }
+  res.json({ user: { ...user, isVerified: user.role === "verified" } });
+});
+
+// PATCH /api/users/me — update own profile
+router.patch("/users/me", requireAuth, async (req, res) => {
+  const user = getUser(req);
+  const parsed = z.object({ name: z.string().min(1).optional() }).safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Invalid input" }); return; }
+  if (parsed.data.name) {
+    await db.update(usersTable).set({ name: parsed.data.name }).where(eq(usersTable.id, user.id));
+  }
+  const [updated] = await db.select().from(usersTable).where(eq(usersTable.id, user.id)).limit(1);
+  res.json({ user: updated });
+});
+
 export default router;

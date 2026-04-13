@@ -6,7 +6,7 @@ import { tripsTable } from "@workspace/db/schema/trips";
 import { usersTable } from "@workspace/db/schema/users";
 import { notificationsTable } from "@workspace/db/schema/notifications";
 import { walletsTable, transactionsTable } from "@workspace/db/schema/payments";
-import { eq, or } from "drizzle-orm";
+import { eq, or, and } from "drizzle-orm";
 import { requireAuth, getUser } from "../middlewares/auth";
 import { genId, genOtp } from "../lib/id";
 import { z } from "zod";
@@ -108,7 +108,46 @@ router.patch("/bookings/:id/decline", requireAuth, async (req, res) => {
   res.json({ success: true });
 });
 
-// PATCH /api/bookings/:id/collect — carrier enters OTP to collect parcel
+// PATCH /api/bookings/:id/cancel — requester cancels pending booking
+router.patch("/bookings/:id/cancel", requireAuth, async (req, res) => {
+  const user = getUser(req);
+  const bookingId = String(req.params.id);
+  const [booking] = await db.select().from(bookingsTable).where(eq(bookingsTable.id, bookingId)).limit(1);
+  if (!booking) { res.status(404).json({ error: "Not found" }); return; }
+  if (booking.requesterId !== user.id) { res.status(403).json({ error: "Forbidden" }); return; }
+  if (!["pending", "accepted"].includes(booking.status)) {
+    res.status(400).json({ error: "Cannot cancel a booking that is already in transit or delivered" }); return;
+  }
+  await db.update(bookingsTable).set({ status: "declined" }).where(eq(bookingsTable.id, booking.id));
+  await db.update(parcelsTable).set({ status: "open" }).where(eq(parcelsTable.id, booking.parcelId));
+  await db.insert(notificationsTable).values({
+    id: genId("n"), userId: booking.carrierId, type: "booking_declined",
+    title: "Booking cancelled", body: `${user.name} cancelled the booking`, relatedId: booking.id, read: false,
+  });
+  res.json({ success: true });
+});
+
+// GET /api/poll - lightweight polling endpoint for real-time updates
+router.get("/poll", requireAuth, async (req, res) => {
+  const user = getUser(req);
+
+  const [unreadNotifs, allBookings] = await Promise.all([
+    db.select().from(notificationsTable)
+      .where(and(eq(notificationsTable.userId, user.id), eq(notificationsTable.read, false))),
+    db.select().from(bookingsTable)
+      .where(or(eq(bookingsTable.requesterId, user.id), eq(bookingsTable.carrierId, user.id))),
+  ]);
+
+  const pendingBookings = allBookings.filter((b) => b.status === "pending").length;
+
+  res.json({
+    unreadNotifications: unreadNotifs.length,
+    pendingBookings,
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// PATCH /api/bookings/:id/collect - carrier enters OTP to collect parcel
 router.patch("/bookings/:id/collect", requireAuth, async (req, res) => {
   const user = getUser(req);
   const { otp } = req.body as { otp: string };

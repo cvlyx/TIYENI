@@ -47,11 +47,15 @@ export function TripCard({ item }: TripCardProps) {
   const handlePressOut = () =>
     Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start();
 
-  const handleMessage = () => {
-    if (!user) return;
+  const handleMessage = async () => {
+    if (!user) { router.push("/(auth)/login" as any); return; }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const convoId = startConversation(item, user.id);
+    const convoId = await startConversation(item, user.id);
     router.push({ pathname: "/chat/[id]", params: { id: convoId } } as any);
+  };
+
+  const handleViewProfile = () => {
+    router.push({ pathname: "/user/[id]", params: { id: item.userId } } as any);
   };
 
   const sizeLabel: Record<string, string> = {
@@ -71,7 +75,9 @@ export function TripCard({ item }: TripCardProps) {
         <View style={styles.header}>
           <UserInitials name={item.userName} />
           <View style={styles.headerInfo}>
-            <Text style={[styles.userName, { color: colors.foreground }]}>{item.userName}</Text>
+            <Pressable onPress={handleViewProfile}>
+              <Text style={[styles.userName, { color: colors.foreground }]}>{item.userName}</Text>
+            </Pressable>
             <View style={styles.metaRow}>
               <StarRating rating={item.userRating} />
               {item.isVerified && <VerifiedBadge />}
