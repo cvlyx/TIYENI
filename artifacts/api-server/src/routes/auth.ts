@@ -13,7 +13,7 @@ import {
   signRefreshToken,
   verifyRefreshToken,
 } from "../lib/jwt";
-import { hashValue, sendOtp, verifyOtpWithTwilio } from "../lib/otp";
+import { hashValue, sendOtp } from "../lib/otp";
 import { requireAuth, getUser } from "../middlewares/auth";
 
 const router = Router();
@@ -98,7 +98,7 @@ router.post("/auth/request-otp", async (req, res) => {
 
   const useTwilio = !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_VERIFY_SERVICE_SID);
 
-  // Always generate a local OTP as fallback
+  // Always generate and store OTP locally
   const otp = genOtp();
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
   await db.insert(otpCodesTable).values({
@@ -108,22 +108,16 @@ router.post("/auth/request-otp", async (req, res) => {
     expiresAt,
   });
 
-  if (useTwilio) {
-    try {
-      await sendOtp(phone, otp);
-    } catch {
-      // Twilio failed — local OTP still works
-    }
-    // Always log locally so dev can test without SMS delivery
-    console.log(`[OTP] code for ${phone} -> ${otp}`);
-  } else {
-    console.log(`[OTP][DEV] ${phone} -> ${otp}`);
+  // Send via Africa's Talking (falls back to console log if not configured)
+  try {
+    await sendOtp(phone, otp);
+  } catch {
+    console.log(`[OTP][FALLBACK] ${phone} -> ${otp}`);
   }
 
   res.json({
     success: true,
     expiresIn: 300,
-    // Only expose code in non-production for dev testing
     ...(process.env.NODE_ENV !== "production" ? { devCode: otp } : {}),
   });
 });
@@ -137,9 +131,7 @@ router.post("/auth/verify-otp", async (req, res) => {
   }
 
   const phone = parsed.data.phone.trim();
-  const useTwilio = !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_VERIFY_SERVICE_SID);
 
-  // Always check local DB first (covers both dev and Twilio-trial fallback)
   const [otpRecord] = await db
     .select()
     .from(otpCodesTable)
@@ -147,26 +139,19 @@ router.post("/auth/verify-otp", async (req, res) => {
     .orderBy(desc(otpCodesTable.createdAt))
     .limit(1);
 
-  if (otpRecord) {
-    const inputHash = hashValue(parsed.data.otp);
-    if (otpRecord.codeHash !== inputHash) {
-      await db.update(otpCodesTable).set({ attempts: otpRecord.attempts + 1 }).where(eq(otpCodesTable.id, otpRecord.id));
-      res.status(400).json({ error: "Invalid OTP" });
-      return;
-    }
-    await db.update(otpCodesTable).set({ consumedAt: new Date() }).where(eq(otpCodesTable.id, otpRecord.id));
-  } else if (useTwilio) {
-    // No local record — try Twilio Verify check (for fully verified numbers on paid plan)
-    const approved = await verifyOtpWithTwilio(phone, parsed.data.otp);
-    if (!approved) {
-      res.status(400).json({ error: "Invalid or expired OTP" });
-      return;
-    }
-  } else {
+  if (!otpRecord) {
     res.status(400).json({ error: "OTP expired or not found" });
     return;
   }
 
+  const inputHash = hashValue(parsed.data.otp);
+  if (otpRecord.codeHash !== inputHash) {
+    await db.update(otpCodesTable).set({ attempts: otpRecord.attempts + 1 }).where(eq(otpCodesTable.id, otpRecord.id));
+    res.status(400).json({ error: "Invalid OTP" });
+    return;
+  }
+
+  await db.update(otpCodesTable).set({ consumedAt: new Date() }).where(eq(otpCodesTable.id, otpRecord.id));
   const defaultName = parsed.data.name?.trim() || `User ${phone.slice(-4)}`;
   const user = await findOrCreateUser(phone, defaultName);
   const tokens = await issueTokens(user.id, user.phone);
