@@ -80,8 +80,10 @@ export default function RegisterScreen() {
     if (!name.trim()) { showToast("Enter your full name", "error"); return; }
     if (!phone || phone.length < 9) { showToast("Enter a valid phone number", "error"); return; }
     setIsLoading(true);
+    const digits = phone.replace(/^\+265/, "").replace(/^0/, "");
+    const normalized = "+265" + digits;
     await new Promise((r) => setTimeout(r, 800));
-    router.push({ pathname: "/(auth)/otp", params: { phone, name } } as any);
+    router.push({ pathname: "/(auth)/otp", params: { phone: normalized, name, devCode: "" } } as any);
     setIsLoading(false);
   };
 

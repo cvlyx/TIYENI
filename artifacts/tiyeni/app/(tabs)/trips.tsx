@@ -76,7 +76,7 @@ function BookingCard({ booking }: { booking: Booking }) {
 export default function MyTripsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { myTrips, myParcels, updateParcelStatus, bookings } = useAppData();
+  const { myTrips, myParcels, bookings, refresh } = useAppData();
   const { user } = useAuth();
   const [tab, setTab] = useState<TabType>("trips");
   const topPadding = Platform.OS === "web" ? insets.top + 67 : insets.top;
@@ -196,12 +196,12 @@ export default function MyTripsScreen() {
         />
       ) : (
         <FlatList
-          data={tab === "trips" ? myTrips : myParcels}
+          data={(tab === "trips" ? myTrips : myParcels) as (Trip | ParcelRequest)[]}
           keyExtractor={(i) => i.id}
           renderItem={({ item, index }) => (
             <AnimatedListItem index={index}>
-              <TripCard item={item} />
-              {item.type === "parcel" && renderParcelActions(item as ParcelRequest)}
+              <TripCard item={item as any} />
+              {tab === "parcels" && renderParcelActions(item as ParcelRequest)}
             </AnimatedListItem>
           )}
           contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + (Platform.OS === "web" ? 34 : 100) }]}

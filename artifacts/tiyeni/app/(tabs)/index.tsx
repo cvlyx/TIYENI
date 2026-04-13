@@ -23,10 +23,9 @@ type FilterTab = "all" | "trips" | "parcels";
 export default function HomeScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { trips, parcelRequests, unreadNotifications } = useAppData();
+  const { trips, parcelRequests, unreadNotifications, refresh, isLoading } = useAppData();
   const { user } = useAuth();
   const [filter, setFilter] = useState<FilterTab>("all");
-  const [loading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const topPadding = Platform.OS === "web" ? insets.top + 67 : insets.top;
 
@@ -37,10 +36,11 @@ export default function HomeScreen() {
       ? parcelRequests
       : [...trips, ...parcelRequests].sort((a, b) => b.createdAt - a.createdAt);
 
-  const onRefresh = useCallback(() => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1200);
-  }, []);
+    await refresh().catch(() => {});
+    setRefreshing(false);
+  }, [refresh]);
 
   const renderItem = ({ item, index }: { item: FeedItem; index: number }) => (
     <AnimatedListItem index={index}>
@@ -116,7 +116,7 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {loading ? (
+      {isLoading && !refreshing ? (
         <View style={styles.skeletonList}>
           {[0, 1, 2].map((i) => <SkeletonCard key={i} />)}
         </View>

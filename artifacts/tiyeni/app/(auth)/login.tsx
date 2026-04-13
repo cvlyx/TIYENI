@@ -83,14 +83,18 @@ export default function LoginScreen() {
       return;
     }
     setIsLoading(true);
+    // Normalize to E.164 — strip +265 or leading 0, then prepend +265
+    const digits = phone.replace(/^\+265/, "").replace(/^0/, "");
+    const normalized = "+265" + digits;
     try {
-      await requestOtp(phone);
+      const devCode = await requestOtp(normalized);
+      router.push({ pathname: "/(auth)/otp", params: { phone: normalized, name: "", devCode: devCode ?? "" } } as any);
     } catch (error) {
       showToast(error instanceof Error ? error.message : "Failed to send OTP", "error");
       setIsLoading(false);
       return;
     }
-    router.push({ pathname: "/(auth)/otp", params: { phone, name: "" } } as any);
+    router.push({ pathname: "/(auth)/otp", params: { phone: normalized, name: "" } } as any);
     setIsLoading(false);
   };
 

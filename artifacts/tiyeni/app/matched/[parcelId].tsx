@@ -26,14 +26,14 @@ export default function MatchedTripsScreen() {
     [...parcelRequests, ...myParcels].find((p) => p.id === parcelId);
   const matchedTrips = parcel ? getMatchedTrips(parcel) : [];
 
-  const handleBook = (tripId: string) => {
+  const handleBook = async (tripId: string) => {
     if (!user || !parcel) {
       showToast("Sign in to book", "error");
       return;
     }
     const trip = matchedTrips.find((t) => t.id === tripId);
     if (!trip) return;
-    const booking = createBooking(tripId, parcel.id, trip, parcel, user.id, user.name);
+    const booking = await createBooking(tripId, parcel.id, trip, parcel, user.id, user.name);
     showToast("Booking request sent!", "success");
     router.push({ pathname: "/booking/[id]", params: { id: booking.id } } as any);
   };

@@ -5,5 +5,5 @@ export function genId(prefix = "id"): string {
 }
 
 export function genOtp(): string {
-  return String(Math.floor(1000 + Math.random() * 9000));
+  return String(Math.floor(100000 + Math.random() * 900000));
 }

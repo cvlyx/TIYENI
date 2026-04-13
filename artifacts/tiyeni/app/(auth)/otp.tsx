@@ -23,7 +23,7 @@ export default function OTPScreen() {
   const insets = useSafeAreaInsets();
   const { verifyOtp, requestOtp } = useAuth();
   const { showToast } = useToast();
-  const params = useLocalSearchParams<{ phone: string; name: string }>();
+  const params = useLocalSearchParams<{ phone: string; name: string; devCode: string }>();
   const [otp, setOtp] = useState(Array(OTP_LENGTH).fill(""));
   const [isLoading, setIsLoading] = useState(false);
   const [countdown, setCountdown] = useState(30);
@@ -98,6 +98,12 @@ export default function OTPScreen() {
             6-digit code sent to{"\n"}
             <Text style={styles.phoneHighlight}>+265 {params.phone}</Text>
           </Text>
+          {!!params.devCode && (
+            <View style={styles.devBanner}>
+              <Ionicons name="bug-outline" size={14} color="#FFB74D" />
+              <Text style={styles.devBannerText}>Dev code: {params.devCode}</Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.otpRow}>
@@ -218,4 +224,22 @@ const styles = StyleSheet.create({
   btnText: { color: "#fff", fontSize: 16, fontFamily: "Inter_700Bold" },
   resend: { alignItems: "center", marginTop: 20 },
   resendText: { fontSize: 14, fontFamily: "Inter_500Medium" },
+  devBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,183,77,0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(255,183,77,0.3)",
+  },
+  devBannerText: {
+    color: "#FFB74D",
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+    letterSpacing: 1,
+  },
 });

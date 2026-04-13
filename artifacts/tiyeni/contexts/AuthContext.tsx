@@ -18,7 +18,7 @@ export interface User {
 interface AuthContextValue {
   user: User | null;
   isLoading: boolean;
-  requestOtp: (phone: string, name?: string) => Promise<void>;
+  requestOtp: (phone: string, name?: string) => Promise<string | undefined>;
   verifyOtp: (phone: string, otp: string, name?: string) => Promise<void>;
   login: (phone: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -58,7 +58,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const requestOtp = useCallback(async (phone: string, name?: string) => {
-    await api.requestOtp(phone, name);
+    const res = await api.requestOtp(phone, name);
+    return (res as any).devCode as string | undefined;
   }, []);
 
   const verifyOtp = useCallback(async (phone: string, otp: string, name?: string) => {

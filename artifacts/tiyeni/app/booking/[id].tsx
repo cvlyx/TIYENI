@@ -54,18 +54,18 @@ export default function BookingScreen() {
 
   const status = statusConfig[booking.status];
 
-  const handleAccept = () => {
-    acceptBooking(booking.id);
+  const handleAccept = async () => {
+    await acceptBooking(booking.id);
     showToast("Booking accepted!", "success");
   };
 
-  const handleDecline = () => {
-    declineBooking(booking.id);
+  const handleDecline = async () => {
+    await declineBooking(booking.id);
     showToast("Booking declined", "info");
   };
 
-  const handleCollect = () => {
-    const ok = collectParcel(booking.id, otpInput.trim());
+  const handleCollect = async () => {
+    const ok = await collectParcel(booking.id, otpInput.trim());
     if (ok) {
       showToast("Parcel collected! In transit.", "success");
       setShowOtp(false);
@@ -74,8 +74,8 @@ export default function BookingScreen() {
     }
   };
 
-  const handleDelivered = () => {
-    confirmDelivery(booking.id);
+  const handleDelivered = async () => {
+    await confirmDelivery(booking.id);
     showToast(`MWK ${booking.price.toLocaleString()} added to wallet!`, "success");
     setTimeout(() => {
       router.replace({ pathname: "/rating/[bookingId]", params: { bookingId: booking.id } } as any);
