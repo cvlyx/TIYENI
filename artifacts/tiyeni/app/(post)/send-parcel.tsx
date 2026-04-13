@@ -75,27 +75,31 @@ export default function SendParcelScreen() {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!user) {
       router.push("/(auth)/login");
       return;
     }
-    addParcelRequest({
-      userId: user.id,
-      userName: user.name,
-      userRating: user.rating,
-      isVerified: user.role === "verified",
-      from: from.trim(),
-      to: to.trim(),
-      deadline: deadline.trim(),
-      parcelSize: size,
-      notes: notes.trim(),
-      price: price ? parseInt(price) : undefined,
-      type: "parcel",
-      status: "open",
-    });
-    showToast("Parcel request posted!", "success");
-    router.replace("/(tabs)/trips");
+    try {
+      await addParcelRequest({
+        userId: user.id,
+        userName: user.name,
+        userRating: user.rating,
+        isVerified: user.role === "verified",
+        from: from.trim(),
+        to: to.trim(),
+        deadline: deadline.trim(),
+        parcelSize: size,
+        notes: notes.trim(),
+        price: price ? parseInt(price) : undefined,
+        type: "parcel",
+        status: "open",
+      });
+      showToast("Parcel request posted!", "success");
+      router.replace("/(tabs)/trips");
+    } catch (e: any) {
+      showToast(e?.message ?? "Failed to post parcel", "error");
+    }
   };
 
   return (

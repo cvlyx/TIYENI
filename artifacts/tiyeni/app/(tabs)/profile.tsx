@@ -189,8 +189,8 @@ export default function ProfileScreen() {
             onPress={() => router.push("/notifications/index" as any)} />
           <SettingRow icon="map-outline" label="Browse Routes" onPress={() => router.push("/routes/index" as any)} />
           <SettingRow icon="search-outline" label="Search Trips & Parcels" onPress={() => router.push("/search/index" as any)} />
-          <SettingRow icon="person-outline" label="Edit Profile" onPress={() => showToast("Coming soon", "info")} />
-          <SettingRow icon="lock-closed-outline" label="Privacy & Security" onPress={() => showToast("Coming soon", "info")} />
+          <SettingRow icon="person-outline" label="Edit Profile" onPress={() => router.push("/profile/edit" as any)} />
+          <SettingRow icon="lock-closed-outline" label="Privacy & Security" onPress={() => router.push("/profile/privacy" as any)} />
         </View>
 
         {/* Safety section */}
@@ -212,9 +212,9 @@ export default function ProfileScreen() {
         {/* Support section */}
         <View style={[styles.section, { backgroundColor: colors.card }]}>
           <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>Support</Text>
-          <SettingRow icon="help-circle-outline" label="Help Center" onPress={() => showToast("Coming soon", "info")} />
-          <SettingRow icon="star-outline" label="Rate the App" onPress={() => showToast("Thank you!", "success")} />
-          <SettingRow icon="document-text-outline" label="Terms & Privacy" onPress={() => showToast("Coming soon", "info")} />
+          <SettingRow icon="help-circle-outline" label="Help Center" onPress={() => router.push("/profile/help" as any)} />
+          <SettingRow icon="star-outline" label="Rate the App" onPress={() => showToast("Thank you! Rating coming soon", "success")} />
+          <SettingRow icon="document-text-outline" label="Terms & Privacy" onPress={() => router.push("/profile/terms" as any)} />
         </View>
 
         <View style={[styles.section, { backgroundColor: colors.card }]}>

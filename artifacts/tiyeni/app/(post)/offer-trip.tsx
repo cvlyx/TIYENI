@@ -67,26 +67,28 @@ export default function OfferTripScreen() {
     }
 
     setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
-
-    addTrip({
-      userId: user.id,
-      userName: user.name,
-      userRating: user.rating,
-      isVerified: user.role === "verified",
-      from: from.trim(),
-      to: to.trim(),
-      date: date.trim(),
-      time: time.trim(),
-      seatsAvailable: parseInt(seats) || 1,
-      parcelCapacity,
-      price: price ? parseInt(price) : undefined,
-      type: "trip",
-    });
-
-    showToast("Trip posted successfully!", "success");
-    setIsLoading(false);
-    router.replace("/(tabs)/trips");
+    try {
+      await addTrip({
+        userId: user.id,
+        userName: user.name,
+        userRating: user.rating,
+        isVerified: user.role === "verified",
+        from: from.trim(),
+        to: to.trim(),
+        date: date.trim(),
+        time: time.trim(),
+        seatsAvailable: parseInt(seats) || 1,
+        parcelCapacity,
+        price: price ? parseInt(price) : undefined,
+        type: "trip",
+      });
+      showToast("Trip posted successfully!", "success");
+      router.replace("/(tabs)/trips");
+    } catch (e: any) {
+      showToast(e?.message ?? "Failed to post trip", "error");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

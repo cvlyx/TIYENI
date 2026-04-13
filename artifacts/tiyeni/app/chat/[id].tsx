@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { Message, useAppData } from "@/contexts/AppDataContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/contexts/ToastContext";
 import { useColors } from "@/hooks/useColors";
 
 function TypingIndicator() {
@@ -78,8 +79,8 @@ export default function ChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { conversations, sendMessage } = useAppData();
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [text, setText] = useState("");
-  const [showTyping, setShowTyping] = useState(false);
   const flatRef = useRef<FlatList>(null);
 
   const topPadding = Platform.OS === "web" ? insets.top + 67 : insets.top;
@@ -93,29 +94,16 @@ export default function ChatScreen() {
     }
   }, [convo?.messages.length]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!text.trim() || !user || !id) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    sendMessage(id, text.trim(), user.id);
+    const msg = text.trim();
     setText("");
-
-    setShowTyping(true);
-    const delay = 1200 + Math.random() * 1500;
-    setTimeout(() => {
-      setShowTyping(false);
-      const replies = [
-        "Okay, sounds good!",
-        "I can do that.",
-        "When would you like to proceed?",
-        "Sure, let me confirm and get back to you.",
-        "That works for me!",
-        "Perfect, I'll be ready.",
-      ];
-      const reply = replies[Math.floor(Math.random() * replies.length)];
-      if (id && convo) {
-        sendMessage(id, reply, convo.participantId);
-      }
-    }, delay);
+    try {
+      await sendMessage(id, msg, user.id);
+    } catch {
+      showToast("Failed to send message", "error");
+    }
   };
 
   if (!convo) {
@@ -176,7 +164,6 @@ export default function ChatScreen() {
         contentContainerStyle={[styles.messageList, { paddingBottom: 16 }]}
         showsVerticalScrollIndicator={false}
         onContentSizeChange={() => flatRef.current?.scrollToEnd({ animated: true })}
-        ListFooterComponent={showTyping ? <TypingIndicator /> : null}
       />
 
       <View style={[styles.inputRow, { borderTopColor: colors.border, paddingBottom: bottomPadding + 8, backgroundColor: colors.card }]}>

@@ -54,18 +54,22 @@ export default function RatingScreen() {
     );
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (rating === 0) { showToast("Please select a star rating", "error"); return; }
     if (!user || !booking) return;
-    addReview({
-      bookingId: booking.id,
-      reviewerId: user.id,
-      revieweeId: revieweeId || "",
-      revieweeName: revieweeName || "",
-      rating,
-      comment: [selectedTags.join(", "), comment].filter(Boolean).join(" — "),
-    });
-    setSubmitted(true);
+    try {
+      await addReview({
+        bookingId: booking.id,
+        reviewerId: user.id,
+        revieweeId: revieweeId || "",
+        revieweeName: revieweeName || "",
+        rating,
+        comment: [selectedTags.join(", "), comment].filter(Boolean).join(" — "),
+      });
+      setSubmitted(true);
+    } catch {
+      showToast("Failed to submit review", "error");
+    }
   };
 
   if (submitted) {
