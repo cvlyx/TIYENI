@@ -35,7 +35,7 @@ export default function RoutesScreen() {
   };
 
   const handleBrowseRoute = (from: string, to: string) => {
-    router.push({ pathname: "/search/index", params: { from, to } } as any);
+    router.push({ pathname: "/search", params: { from, to } } as any);
   };
 
   return (
@@ -135,3 +135,4 @@ const styles = StyleSheet.create({
   countText: { fontSize: 11, fontFamily: "Inter_500Medium" },
   noActivity: { fontSize: 12, fontFamily: "Inter_400Regular" },
 });
+

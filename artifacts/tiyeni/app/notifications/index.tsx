@@ -42,7 +42,7 @@ function NotifRow({ item, colors }: { item: AppNotification; colors: any }) {
     else if (item.type === "booking_request" || item.type === "booking_accepted" || item.type === "booking_declined")
       router.push({ pathname: "/booking/[id]", params: { id: item.relatedId } } as any);
     else if (item.type === "match") router.push({ pathname: "/matched/[parcelId]", params: { parcelId: item.relatedId } } as any);
-    else if (item.type === "wallet") router.push("/wallet/index" as any);
+    else if (item.type === "wallet") router.push("/wallet" as any);
   };
 
   return (
@@ -196,3 +196,4 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 18, fontFamily: "Inter_600SemiBold" },
   emptyBody: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 20 },
 });
+

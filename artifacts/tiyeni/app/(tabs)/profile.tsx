@@ -129,7 +129,7 @@ export default function ProfileScreen() {
         </View>
 
         {/* Wallet card */}
-        <Pressable onPress={() => router.push("/wallet/index" as any)} style={styles.walletCard}>
+        <Pressable onPress={() => router.push("/wallet" as any)} style={styles.walletCard}>
           <LinearGradient colors={["#1A4A1E", "#2E7D32"]} style={styles.walletGrad}>
             <View style={styles.walletLeft}>
               <Ionicons name="wallet-outline" size={22} color="rgba(255,255,255,0.8)" />
@@ -140,7 +140,7 @@ export default function ProfileScreen() {
             </View>
             <View style={styles.walletRight}>
               <Pressable
-                onPress={() => router.push("/wallet/index" as any)}
+                onPress={() => router.push("/wallet" as any)}
                 style={styles.topUpBtn}
               >
                 <Text style={styles.topUpBtnText}>Top Up</Text>
@@ -152,7 +152,7 @@ export default function ProfileScreen() {
         {/* Verification banners */}
         {!isVerified && !verificationPending && (
           <Pressable
-            onPress={() => router.push("/verify/index" as any)}
+            onPress={() => router.push("/verify" as any)}
             style={[styles.verifyBanner, { backgroundColor: colors.accent + "18", borderColor: colors.accent }]}
           >
             <View style={styles.verifyBannerContent}>
@@ -186,9 +186,9 @@ export default function ProfileScreen() {
         <View style={[styles.section, { backgroundColor: colors.card }]}>
           <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>Account</Text>
           <SettingRow icon="notifications-outline" label="Notifications" badge={unreadNotifications}
-            onPress={() => router.push("/notifications/index" as any)} />
-          <SettingRow icon="map-outline" label="Browse Routes" onPress={() => router.push("/routes/index" as any)} />
-          <SettingRow icon="search-outline" label="Search Trips & Parcels" onPress={() => router.push("/search/index" as any)} />
+            onPress={() => router.push("/notifications" as any)} />
+          <SettingRow icon="map-outline" label="Browse Routes" onPress={() => router.push("/routes" as any)} />
+          <SettingRow icon="search-outline" label="Search Trips & Parcels" onPress={() => router.push("/search" as any)} />
           <SettingRow icon="person-outline" label="Edit Profile" onPress={() => router.push("/profile/edit" as any)} />
           <SettingRow icon="lock-closed-outline" label="Privacy & Security" onPress={() => router.push("/profile/privacy" as any)} />
         </View>
@@ -200,7 +200,7 @@ export default function ProfileScreen() {
             icon="shield-checkmark-outline"
             label={isVerified ? "ID Verified" : "Verify My Identity"}
             rightLabel={isVerified ? "✓" : undefined}
-            onPress={() => isVerified ? showToast("Already verified!", "success") : router.push("/verify/index" as any)}
+            onPress={() => isVerified ? showToast("Already verified!", "success") : router.push("/verify" as any)}
           />
           <SettingRow
             icon="share-social-outline"
@@ -275,3 +275,4 @@ const styles = StyleSheet.create({
   signInText: { color: "#fff", fontSize: 15, fontFamily: "Inter_600SemiBold" },
   registerLink: { fontSize: 14, fontFamily: "Inter_500Medium" },
 });
+
