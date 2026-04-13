@@ -35,7 +35,7 @@ export default function RoutesScreen() {
   };
 
   const handleBrowseRoute = (from: string, to: string) => {
-    router.push({ pathname: "/search", params: { from, to } } as any);
+    router.push({ pathname: "/search/index", params: { from, to } } as any);
   };
 
   return (

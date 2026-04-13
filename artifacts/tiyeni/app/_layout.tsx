@@ -31,11 +31,11 @@ function RootLayoutNav() {
       <Stack.Screen name="booking/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="matched/[parcelId]" options={{ headerShown: false }} />
       <Stack.Screen name="rating/[bookingId]" options={{ headerShown: false }} />
-      <Stack.Screen name="wallet" options={{ headerShown: false }} />
-      <Stack.Screen name="notifications" options={{ headerShown: false }} />
-      <Stack.Screen name="verify" options={{ headerShown: false }} />
-      <Stack.Screen name="routes" options={{ headerShown: false }} />
-      <Stack.Screen name="search" options={{ headerShown: false }} />
+      <Stack.Screen name="wallet/index" options={{ headerShown: false }} />
+      <Stack.Screen name="notifications/index" options={{ headerShown: false }} />
+      <Stack.Screen name="verify/index" options={{ headerShown: false }} />
+      <Stack.Screen name="routes/index" options={{ headerShown: false }} />
+      <Stack.Screen name="search/index" options={{ headerShown: false }} />
       <Stack.Screen name="profile/edit" options={{ headerShown: false }} />
       <Stack.Screen name="profile/privacy" options={{ headerShown: false }} />
       <Stack.Screen name="profile/help" options={{ headerShown: false }} />

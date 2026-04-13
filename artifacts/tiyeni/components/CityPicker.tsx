@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
-  FlatList, Pressable, StyleSheet, Text,
+  Pressable, ScrollView, StyleSheet, Text,
   TextInput, View,
 } from "react-native";
 import { useColors } from "@/hooks/useColors";
@@ -55,26 +55,24 @@ export function CityPicker({ value, onChange, placeholder = "Select city", exclu
               autoFocus
             />
           </View>
-          <FlatList
-            data={filtered}
-            keyExtractor={(c) => c}
-            style={{ maxHeight: 200 }}
-            keyboardShouldPersistTaps="handled"
-            renderItem={({ item: city }) => (
-              <Pressable
-                onPress={() => { onChange(city); setOpen(false); setQuery(""); }}
-                style={[styles.option, { borderBottomColor: colors.border }]}
-              >
-                <Text style={[styles.optionText, { color: city === value ? colors.primary : colors.foreground }]}>
-                  {city}
-                </Text>
-                {city === value && <Ionicons name="checkmark" size={16} color={colors.primary} />}
-              </Pressable>
-            )}
-            ListEmptyComponent={
+          <ScrollView style={{ maxHeight: 200 }} keyboardShouldPersistTaps="handled" nestedScrollEnabled>
+            {filtered.length === 0 ? (
               <Text style={[styles.noResults, { color: colors.mutedForeground }]}>No cities found</Text>
-            }
-          />
+            ) : (
+              filtered.map((city) => (
+                <Pressable
+                  key={city}
+                  onPress={() => { onChange(city); setOpen(false); setQuery(""); }}
+                  style={[styles.option, { borderBottomColor: colors.border }]}
+                >
+                  <Text style={[styles.optionText, { color: city === value ? colors.primary : colors.foreground }]}>
+                    {city}
+                  </Text>
+                  {city === value && <Ionicons name="checkmark" size={16} color={colors.primary} />}
+                </Pressable>
+              ))
+            )}
+          </ScrollView>
         </View>
       )}
     </View>
