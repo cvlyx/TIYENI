@@ -23,9 +23,16 @@
       "backgroundColor": "#2E7D32"
     },
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "icon": "./assets/images/icon.png"
     },
-    "android": {},
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#2E7D32"
+      },
+      "icon": "./assets/images/icon.png"
+    },
     "web": {
       "favicon": "./assets/images/icon.png"
     },
