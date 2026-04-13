@@ -34,7 +34,17 @@ router.get("/trips", async (req, res) => {
     return true;
   });
 
-  res.json({ trips: filtered.map((r) => ({ ...r.trip, userName: r.user.name, userRating: r.user.rating, isVerified: r.user.role === "verified" })) });
+  res.json({
+    trips: filtered.map((r) => ({
+      ...r.trip,
+      from: r.trip.from,
+      to: r.trip.to,
+      userName: r.user.name,
+      userRating: r.user.rating,
+      isVerified: r.user.role === "verified",
+      type: "trip",
+    })),
+  });
 });
 
 // POST /api/trips
@@ -45,7 +55,7 @@ router.post("/trips", requireAuth, async (req, res) => {
   const id = genId("t");
   await db.insert(tripsTable).values({ id, userId: user.id, ...parsed.data });
   const [trip] = await db.select().from(tripsTable).where(eq(tripsTable.id, id)).limit(1);
-  res.status(201).json({ trip });
+  res.status(201).json({ trip: { ...trip, type: "trip", userName: user.name, userRating: user.rating, isVerified: user.role === "verified" } });
 });
 
 // DELETE /api/trips/:id

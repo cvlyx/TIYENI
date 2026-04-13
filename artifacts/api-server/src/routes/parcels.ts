@@ -28,9 +28,12 @@ router.get("/parcels", async (req, res) => {
   res.json({
     parcels: rows.map((r) => ({
       ...r.parcel,
+      from: r.parcel.from,
+      to: r.parcel.to,
       userName: r.user.name,
       userRating: r.user.rating,
       isVerified: r.user.role === "verified",
+      type: "parcel",
     })),
   });
 });
@@ -43,7 +46,7 @@ router.post("/parcels", requireAuth, async (req, res) => {
   const id = genId("p");
   await db.insert(parcelsTable).values({ id, userId: user.id, ...parsed.data });
   const [parcel] = await db.select().from(parcelsTable).where(eq(parcelsTable.id, id)).limit(1);
-  res.status(201).json({ parcel });
+  res.status(201).json({ parcel: { ...parcel, type: "parcel", userName: user.name, userRating: user.rating, isVerified: user.role === "verified" } });
 });
 
 // GET /api/parcels/:id/matches — find trips that can carry this parcel

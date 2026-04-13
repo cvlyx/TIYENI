@@ -3,6 +3,7 @@ import { db } from "@workspace/db";
 import { bookingsTable } from "@workspace/db/schema/bookings";
 import { parcelsTable } from "@workspace/db/schema/parcels";
 import { tripsTable } from "@workspace/db/schema/trips";
+import { usersTable } from "@workspace/db/schema/users";
 import { notificationsTable } from "@workspace/db/schema/notifications";
 import { walletsTable, transactionsTable } from "@workspace/db/schema/payments";
 import { eq, or } from "drizzle-orm";
@@ -15,7 +16,7 @@ const router = Router();
 const CreateBookingSchema = z.object({
   tripId: z.string(),
   parcelId: z.string(),
-  price: z.number(),
+  price: z.number().optional(),
 });
 
 // GET /api/bookings — user's bookings (as requester or carrier)
@@ -23,7 +24,15 @@ router.get("/bookings", requireAuth, async (req, res) => {
   const user = getUser(req);
   const bookings = await db.select().from(bookingsTable)
     .where(or(eq(bookingsTable.requesterId, user.id), eq(bookingsTable.carrierId, user.id)));
-  res.json({ bookings });
+
+  // Enrich with names
+  const enriched = await Promise.all(bookings.map(async (b) => {
+    const [requester] = await db.select({ name: usersTable.name }).from(usersTable).where(eq(usersTable.id, b.requesterId)).limit(1);
+    const [carrier] = await db.select({ name: usersTable.name }).from(usersTable).where(eq(usersTable.id, b.carrierId)).limit(1);
+    return { ...b, requesterName: requester?.name ?? "Unknown", carrierName: carrier?.name ?? "Unknown" };
+  }));
+
+  res.json({ bookings: enriched });
 });
 
 // POST /api/bookings
@@ -37,6 +46,7 @@ router.post("/bookings", requireAuth, async (req, res) => {
   if (!trip || !parcel) { res.status(404).json({ error: "Trip or parcel not found" }); return; }
 
   const id = genId("b");
+  const price = parsed.data.price ?? parcel.price ?? trip.price ?? 0;
   await db.insert(bookingsTable).values({
     id,
     tripId: trip.id,
@@ -48,7 +58,7 @@ router.post("/bookings", requireAuth, async (req, res) => {
     date: trip.date,
     status: "pending",
     pickupOtp: genOtp(),
-    price: parsed.data.price,
+    price,
   });
 
   // Update parcel status

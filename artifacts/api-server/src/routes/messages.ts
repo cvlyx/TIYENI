@@ -20,7 +20,15 @@ router.get("/conversations", requireAuth, async (req, res) => {
     const otherId = c.participant1Id === user.id ? c.participant2Id : c.participant1Id;
     const [other] = await db.select().from(usersTable).where(eq(usersTable.id, otherId)).limit(1);
     const msgs = await db.select().from(messagesTable).where(eq(messagesTable.conversationId, c.id));
-    return { ...c, participant: other, messages: msgs };
+    return {
+      ...c,
+      participantId: otherId,
+      participantName: other?.name ?? "Unknown",
+      participantRating: other?.rating ?? 0,
+      isVerified: other?.role === "verified",
+      lastTimestamp: c.lastTimestamp,
+      messages: msgs.map((m) => ({ ...m, timestamp: m.createdAt })),
+    };
   }));
 
   res.json({ conversations: enriched });
