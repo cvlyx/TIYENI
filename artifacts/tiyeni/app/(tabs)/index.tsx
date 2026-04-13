@@ -62,13 +62,13 @@ export default function HomeScreen() {
           </View>
           <View style={styles.headerActions}>
             <Pressable
-              onPress={() => router.push("/search/index" as any)}
+              onPress={() => router.push("/search" as any)}
               style={[styles.iconBtn, { backgroundColor: "rgba(255,255,255,0.15)" }]}
             >
               <Ionicons name="search" size={20} color="#fff" />
             </Pressable>
             <Pressable
-              onPress={() => router.push("/notifications/index" as any)}
+              onPress={() => router.push("/notifications" as any)}
               style={[styles.iconBtn, { backgroundColor: "rgba(255,255,255,0.15)" }]}
             >
               <Ionicons name="notifications-outline" size={20} color="#fff" />
@@ -85,7 +85,7 @@ export default function HomeScreen() {
 
         {/* Quick route browse chips */}
         <Pressable
-          onPress={() => router.push("/routes/index" as any)}
+          onPress={() => router.push("/routes" as any)}
           style={styles.routeBrowseBtn}
         >
           <Ionicons name="map-outline" size={14} color="rgba(255,255,255,0.9)" />

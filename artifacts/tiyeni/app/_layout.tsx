@@ -24,23 +24,9 @@ const queryClient = new QueryClient();
 function RootLayoutNav() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="(auth)" options={{ presentation: "modal", headerShown: false }} />
-      <Stack.Screen name="(post)" options={{ presentation: "modal", headerShown: false }} />
-      <Stack.Screen name="chat/[id]" options={{ headerShown: false }} />
-      <Stack.Screen name="booking/[id]" options={{ headerShown: false }} />
-      <Stack.Screen name="matched/[parcelId]" options={{ headerShown: false }} />
-      <Stack.Screen name="rating/[bookingId]" options={{ headerShown: false }} />
-      <Stack.Screen name="wallet/index" options={{ headerShown: false }} />
-      <Stack.Screen name="notifications/index" options={{ headerShown: false }} />
-      <Stack.Screen name="verify/index" options={{ headerShown: false }} />
-      <Stack.Screen name="routes/index" options={{ headerShown: false }} />
-      <Stack.Screen name="search/index" options={{ headerShown: false }} />
-      <Stack.Screen name="profile/edit" options={{ headerShown: false }} />
-      <Stack.Screen name="profile/privacy" options={{ headerShown: false }} />
-      <Stack.Screen name="profile/help" options={{ headerShown: false }} />
-      <Stack.Screen name="profile/terms" options={{ headerShown: false }} />
-      <Stack.Screen name="user/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="(auth)" options={{ presentation: "modal" }} />
+      <Stack.Screen name="(post)" options={{ presentation: "modal" }} />
     </Stack>
   );
 }
