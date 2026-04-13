@@ -36,6 +36,10 @@ function RootLayoutNav() {
       <Stack.Screen name="verify/index" options={{ headerShown: false }} />
       <Stack.Screen name="routes/index" options={{ headerShown: false }} />
       <Stack.Screen name="search/index" options={{ headerShown: false }} />
+      <Stack.Screen name="profile/edit" options={{ headerShown: false }} />
+      <Stack.Screen name="profile/privacy" options={{ headerShown: false }} />
+      <Stack.Screen name="profile/help" options={{ headerShown: false }} />
+      <Stack.Screen name="profile/terms" options={{ headerShown: false }} />
     </Stack>
   );
 }
