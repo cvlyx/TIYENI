@@ -10,14 +10,13 @@
         "EXPO_PUBLIC_API_URL": "https://tiyeni-api.onrender.com/api"
       },
       "cache": {
-        "disabled": false
+        "key": "tiyeni-v1"
       }
     },
     "development": {
       "extends": "base",
       "developmentClient": true,
-      "distribution": "internal",
-      "channel": "development"
+      "distribution": "internal"
     },
     "preview": {
       "extends": "base",
@@ -28,8 +27,7 @@
     },
     "production": {
       "extends": "base",
-      "autoIncrement": true,
-      "channel": "production"
+      "autoIncrement": true
     }
   },
   "submit": {
