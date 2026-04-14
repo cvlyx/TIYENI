@@ -1,5 +1,5 @@
 import { Router } from "express";
-import bcrypt from "bcryptjs";
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { db } from "@workspace/db";
 import { usersTable } from "@workspace/db/schema/users";
 import { walletsTable } from "@workspace/db/schema/payments";
@@ -43,7 +43,23 @@ const RefreshSchema = z.object({
   refreshToken: z.string().min(20),
 });
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Password hashing using Node built-in crypto ─────────────────────────────
+function hashPassword(password: string): string {
+  const salt = randomBytes(16).toString("hex");
+  const hash = createHash("sha256").update(salt + password).digest("hex");
+  return `${salt}:${hash}`;
+}
+
+function verifyPassword(password: string, stored: string): boolean {
+  const [salt, hash] = stored.split(":");
+  if (!salt || !hash) return false;
+  const attempt = createHash("sha256").update(salt + password).digest("hex");
+  try {
+    return timingSafeEqual(Buffer.from(hash, "hex"), Buffer.from(attempt, "hex"));
+  } catch {
+    return false;
+  }
+}
 
 async function issueTokens(userId: string, phone: string) {
   const jti = genId("rt");
@@ -89,7 +105,7 @@ router.post("/auth/register", async (req, res) => {
     return;
   }
 
-  const passwordHash = await bcrypt.hash(password, 12);
+  const passwordHash = hashPassword(password);
   const id = genId("u");
 
   await db.insert(usersTable).values({
@@ -156,7 +172,7 @@ router.post("/auth/login", async (req, res) => {
     return;
   }
 
-  const valid = await bcrypt.compare(password, user.passwordHash);
+  const valid = verifyPassword(password, user.passwordHash);
   if (!valid) { res.status(401).json({ error: "Invalid credentials" }); return; }
 
   if (!user.phoneVerified) {
