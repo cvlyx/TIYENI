@@ -4,6 +4,9 @@
       "eas": {
         "projectId": "81de246a-569f-4806-b93c-f8cfb3a83868"
       }
+    },
+    "android": {
+      "package": "com.calyx2002.workspace"
     }
   }
 }

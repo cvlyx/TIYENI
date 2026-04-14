@@ -30,7 +30,6 @@ async function buildAll() {
     external: [
       "africastalking",
       "twilio",
-      "bcryptjs",
       "*.node",
       "sharp",
       "better-sqlite3",
