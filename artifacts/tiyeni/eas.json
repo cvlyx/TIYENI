@@ -8,9 +8,6 @@
       "node": "22.22.0",
       "env": {
         "EXPO_PUBLIC_API_URL": "https://tiyeni-api.onrender.com/api"
-      },
-      "cache": {
-        "key": "tiyeni-v2"
       }
     },
     "development": {
@@ -22,8 +19,7 @@
       "extends": "base",
       "distribution": "internal",
       "android": {
-        "buildType": "apk",
-        "gradleCommand": ":app:assembleRelease"
+        "buildType": "apk"
       }
     },
     "production": {
