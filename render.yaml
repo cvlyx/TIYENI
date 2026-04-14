@@ -1,0 +1,41 @@
+services:
+  - type: web
+    name: tiyeni-api
+    runtime: node
+    region: oregon
+    plan: free
+    rootDir: artifacts/api-server
+    buildCommand: npm install -g pnpm && pnpm install --frozen-lockfile=false && pnpm run build
+    startCommand: pnpm run start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        sync: false
+      - key: JWT_REFRESH_SECRET
+        sync: false
+      - key: JWT_ACCESS_TTL_SECONDS
+        value: 900
+      - key: JWT_REFRESH_TTL_SECONDS
+        value: 2592000
+      - key: AT_API_KEY
+        sync: false
+      - key: AT_USERNAME
+        value: sandbox
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_VERIFY_SERVICE_SID
+        sync: false
+      - key: PAYCHANGU_SECRET_KEY
+        sync: false
+      - key: API_BASE_URL
+        sync: false
+      - key: APP_RETURN_URL
+        value: tiyeni://wallet
