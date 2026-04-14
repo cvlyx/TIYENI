@@ -6,6 +6,7 @@
   "build": {
     "base": {
       "node": "22.22.0",
+      "workingDirectory": "artifacts/tiyeni",
       "env": {
         "EXPO_PUBLIC_API_URL": "https://tiyeni-api.onrender.com/api"
       }
