@@ -1,0 +1,6 @@
+# Ignore everything except what's needed for the Expo app
+node_modules
+.git
+artifacts/api-server
+lib
+scripts
