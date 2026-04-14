@@ -54,20 +54,25 @@ async function request<T>(path: string, options: RequestInit = {}, retries = 1):
 
 export const api = {
   // Auth
-  login: (phone: string, name: string) =>
-    request<{ user: any; token: string; accessToken: string; refreshToken: string; expiresIn: number }>("/auth/login", {
+  register: (data: { name: string; username: string; email: string; phone: string; password: string }) =>
+    request<{ success: boolean; phone: string; devCode?: string }>("/auth/register", {
       method: "POST",
-      body: JSON.stringify({ phone, name }),
+      body: JSON.stringify(data),
     }),
-  requestOtp: (phone: string, name?: string) =>
-    request<{ success: boolean; expiresIn: number; devCode?: string }>("/auth/request-otp", {
+  verifyPhone: (phone: string, otp: string) =>
+    request<{ user: any; token: string; accessToken: string; refreshToken: string; expiresIn: number }>("/auth/verify-phone", {
       method: "POST",
-      body: JSON.stringify({ phone, name }),
+      body: JSON.stringify({ phone, otp }),
     }),
-  verifyOtp: (phone: string, otp: string, name?: string) =>
-    request<{ user: any; token: string; accessToken: string; refreshToken: string; expiresIn: number }>("/auth/verify-otp", {
+  login: (identifier: string, password: string) =>
+    request<{ user: any; token: string; accessToken: string; refreshToken: string; expiresIn: number } | { error: string; phone: string; devCode?: string }>("/auth/login", {
       method: "POST",
-      body: JSON.stringify({ phone, otp, name }),
+      body: JSON.stringify({ identifier, password }),
+    }),
+  resendOtp: (phone: string) =>
+    request<{ success: boolean; devCode?: string }>("/auth/resend-otp", {
+      method: "POST",
+      body: JSON.stringify({ phone }),
     }),
   refresh: async (refreshToken?: string) => {
     const token = refreshToken ?? (await getRefreshToken());
@@ -90,8 +95,10 @@ export const api = {
   // Users
   getUser: (id: string) => request<{ user: any }>(`/users/${id}`),
   getUserReviews: (id: string) => request<{ reviews: any[] }>(`/users/${id}/reviews`),
-  updateProfile: (data: { name?: string }) =>
+  updateProfile: (data: { name?: string; avatarUrl?: string }) =>
     request<{ user: any }>("/users/me", { method: "PATCH", body: JSON.stringify(data) }),
+  verifyIdentity: (idDocumentUrl: string, selfieUrl: string) =>
+    request<{ success: boolean }>("/auth/verify-identity", { method: "POST", body: JSON.stringify({ idDocumentUrl, selfieUrl }) }),
 
   // Trips
   getTrips: (from?: string, to?: string) =>

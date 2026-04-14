@@ -62,7 +62,7 @@ export default function OTPScreen() {
       setIsLoading(false);
       return;
     }
-    showToast("Welcome to Tiyeni!", "success");
+    showToast("Phone verified! Welcome to Tiyeni!", "success");
     router.replace("/(tabs)/");
     setIsLoading(false);
   };

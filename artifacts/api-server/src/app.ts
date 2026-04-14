@@ -22,7 +22,7 @@ const otpLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many OTP requests, please wait before trying again" },
-  keyGenerator: (req) => (req.body?.phone ?? req.ip) as string,
+  keyGenerator: (req: any) => (req.body?.phone ?? req.ip) as string,
 });
 
 app.use(

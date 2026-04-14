@@ -58,20 +58,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const requestOtp = useCallback(async (phone: string, name?: string) => {
-    const res = await api.requestOtp(phone, name);
+    const res = await api.resendOtp(phone);
     return (res as any).devCode as string | undefined;
   }, []);
 
   const verifyOtp = useCallback(async (phone: string, otp: string, name?: string) => {
-    const { user: u, accessToken, refreshToken, token } = await api.verifyOtp(phone, otp, name);
+    const { user: u, accessToken, refreshToken, token } = await api.verifyPhone(phone, otp);
     await AsyncStorage.setItem(TOKEN_KEY, accessToken || token);
     await AsyncStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
     await AsyncStorage.setItem(USER_KEY, JSON.stringify(u));
     setUser(u);
   }, []);
 
-  const login = useCallback(async (phone: string, name: string) => {
-    const { user: u, accessToken, refreshToken, token } = await api.login(phone, name);
+  const login = useCallback(async (identifier: string, password: string) => {
+    const res = await api.login(identifier, password) as any;
+    if (res.error) {
+      const err: any = new Error(res.error);
+      err.phone = res.phone;
+      err.devCode = res.devCode;
+      throw err;
+    }
+    const { user: u, accessToken, refreshToken, token } = res;
     await AsyncStorage.setItem(TOKEN_KEY, accessToken || token);
     await AsyncStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
     await AsyncStorage.setItem(USER_KEY, JSON.stringify(u));
