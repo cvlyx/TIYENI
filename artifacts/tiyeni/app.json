@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Tiyeni",
-    "slug": "tiyeni",
+    "slug": "workspace",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -31,7 +31,8 @@
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#2E7D32"
       },
-      "icon": "./assets/images/icon.png"
+      "icon": "./assets/images/icon.png",
+      "package": "com.calyx2002.workspace"
     },
     "web": {
       "favicon": "./assets/images/icon.png"
@@ -44,8 +45,7 @@
         }
       ],
       "expo-font",
-      "expo-web-browser",
-      "expo-updates"
+      "expo-web-browser"
     ],
     "extra": {
       "eas": {
@@ -55,6 +55,7 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "owner": "calyx2002"
   }
 }
