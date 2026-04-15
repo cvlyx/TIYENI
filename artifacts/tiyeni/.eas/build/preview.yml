@@ -1,0 +1,9 @@
+build:
+  name: Preview Android APK
+  steps:
+    - eas/use_npm_token
+    - run:
+        name: Install dependencies
+        command: npm install --legacy-peer-deps
+    - eas/prebuild
+    - eas/build
