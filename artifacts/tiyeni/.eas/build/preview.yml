@@ -3,11 +3,15 @@ build:
   steps:
     - eas/use_npm_token
     - run:
-        name: Install dependencies
-        working_directory: artifacts/tiyeni
+        name: Debug environment
         command: |
-          npm install --legacy-peer-deps
-          set-env EAS_BUILD_WORKINGDIR /home/expo/workingdir/build/artifacts/tiyeni
+          echo "PWD: $(pwd)"
+          echo "Build dir contents:"
+          ls -la
+          echo "package.json exists: $(test -f package.json && echo yes || echo no)"
+    - run:
+        name: Install dependencies
+        command: npm install --legacy-peer-deps
     - eas/prebuild
     - eas/inject_android_credentials
     - eas/configure_eas_update
