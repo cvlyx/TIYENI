@@ -3,12 +3,7 @@ build:
   steps:
     - eas/use_npm_token
     - run:
-        name: Set working directory
-        command: |
-          set-env EAS_BUILD_WORKINGDIR /home/expo/workingdir/build/artifacts/tiyeni
-    - run:
         name: Install dependencies
-        working_directory: artifacts/tiyeni
         command: npm install --legacy-peer-deps
     - eas/prebuild
     - eas/inject_android_credentials
