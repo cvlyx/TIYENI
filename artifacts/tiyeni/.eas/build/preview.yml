@@ -1,14 +1,25 @@
 build:
   name: Preview Android APK
   steps:
-    - eas/use_npm_token
+    - eas/checkout
     - run:
         name: Debug environment
         command: |
-          echo "PWD: $(pwd)"
+          pwd
           echo "Build dir contents:"
           ls -la
           echo "package.json exists: $(test -f package.json && echo yes || echo no)"
+          echo "artifacts/tiyeni exists: $(test -d artifacts/tiyeni && echo yes || echo no)"
+          if [ -d artifacts/tiyeni ]; then
+            echo "artifacts/tiyeni contents:"
+            ls -la artifacts/tiyeni/
+          fi
+    - run:
+        name: Set working directory
+        command: |
+          cd artifacts/tiyeni
+          set-env EAS_BUILD_WORKINGDIR $(pwd)
+    - eas/use_npm_token
     - run:
         name: Install dependencies
         command: npm install --legacy-peer-deps
