@@ -68,7 +68,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <View style={[styles.container, { top: insets.top + 10 }]} pointerEvents="none">
+      <View style={[styles.container, { top: insets.top + 10 }]} pointerEvents="box-none">
         {toasts.map((t) => (
           <ToastItem key={t.id} toast={t} onDone={() => removeToast(t.id)} />
         ))}
@@ -88,23 +88,27 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 16,
     right: 16,
-    zIndex: 9999,
+    zIndex: 99999,
     gap: 8,
+    pointerEvents: "box-none",
   },
   toast: {
     borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.3,
     shadowRadius: 8,
-    elevation: 8,
+    elevation: 10,
+    minHeight: 48,
+    justifyContent: "center",
   },
   toastText: {
-    color: "#fff",
-    fontSize: 14,
-    fontFamily: "Inter_500Medium",
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "600",
     textAlign: "center",
+    includeFontPadding: false,
   },
 });
