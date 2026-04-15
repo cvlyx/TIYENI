@@ -8,19 +8,10 @@ build:
           pwd
           echo "Build dir contents:"
           ls -la
-          echo "Checking for artifacts/tiyeni:"
-          if [ -d artifacts/tiyeni ]; then
-            echo "✓ artifacts/tiyeni exists"
-            ls -la artifacts/tiyeni/ | head -20
-          else
-            echo "✗ artifacts/tiyeni NOT FOUND"
-            echo "Available directories:"
-            find . -maxdepth 2 -type d
-          fi
+          echo "package.json exists: $(test -f package.json && echo yes || echo no)"
     - eas/use_npm_token
     - run:
         name: Install dependencies
-        working_directory: artifacts/tiyeni
         command: npm install --legacy-peer-deps
     - eas/prebuild
     - eas/inject_android_credentials
