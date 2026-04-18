@@ -6,14 +6,14 @@ import {
   useFonts,
 } from "@expo-google-fonts/inter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack } from "expo-router";
+import { Stack, router } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
-import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { AuthProvider } from "@/contexts/AuthContext";
+import EnhancedErrorBoundary, { CriticalErrorBoundary } from "@/components/EnhancedErrorBoundary";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { AppDataProvider } from "@/contexts/AppDataContext";
 import { ToastProvider } from "@/contexts/ToastContext";
 
@@ -22,10 +22,19 @@ SplashScreen.preventAutoHideAsync();
 const queryClient = new QueryClient();
 
 function RootLayoutNav() {
+  const { user, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (!user) {
+      router.replace("/(auth)/welcome");
+    }
+  }, [user, isLoading]);
+
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="(auth)" options={{ presentation: "modal" }} />
+      <Stack.Screen name="(auth)" />
       <Stack.Screen name="(post)" options={{ presentation: "modal" }} />
     </Stack>
   );
@@ -49,19 +58,21 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <ErrorBoundary>
-        <QueryClientProvider client={queryClient}>
-          <AuthProvider>
-            <AppDataProvider>
-              <GestureHandlerRootView>
+      <CriticalErrorBoundary>
+        <EnhancedErrorBoundary enablePerformanceTracking={true}>
+          <QueryClientProvider client={queryClient}>
+            <AuthProvider>
+              <AppDataProvider>
+                <GestureHandlerRootView style={{ flex: 1 }}>
                   <ToastProvider>
                     <RootLayoutNav />
                   </ToastProvider>
-              </GestureHandlerRootView>
-            </AppDataProvider>
-          </AuthProvider>
-        </QueryClientProvider>
-      </ErrorBoundary>
+                </GestureHandlerRootView>
+              </AppDataProvider>
+            </AuthProvider>
+          </QueryClientProvider>
+        </EnhancedErrorBoundary>
+      </CriticalErrorBoundary>
     </SafeAreaProvider>
   );
 }

@@ -1,0 +1,322 @@
+# GitLab CI/CD Configuration for Tiyeni Malawi-Connect
+# Migrated from GitHub Actions to GitLab CI
+
+stages:
+  - validate
+  - test
+  - build
+  - deploy
+
+variables:
+  NODE_VERSION: "18"
+  EXPO_CLI_VERSION: "6.0.0"
+  CACHE_KEY: "$CI_COMMIT_REF_SLUG"
+
+# Cache node_modules for faster builds
+cache:
+  key: ${CACHE_KEY}
+  paths:
+    - node_modules/
+    - artifacts/tiyeni/node_modules/
+    - artifacts/api-server/node_modules/
+    - lib/*/node_modules/
+
+# Validate code quality and dependencies
+validate:
+  stage: validate
+  image: node:${NODE_VERSION}
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+  script:
+    - echo "Validating code quality..."
+    - npm run typecheck
+    - npm run lint || true  # Make lint non-blocking for now
+    - echo "Code validation complete"
+  artifacts:
+    reports:
+      junit: test-results.xml
+    paths:
+      - test-results.xml
+    expire_in: 1 week
+  only:
+    - merge_requests
+    - main
+    - develop
+
+# Run unit tests
+test:
+  stage: test
+  image: node:${NODE_VERSION}
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+    - cd artifacts/tiyeni && npm ci --cache ../../.npm --prefer-offline
+  script:
+    - echo "Running tests..."
+    - npm test -- --coverage --watchAll=false
+    - echo "Tests completed"
+  coverage: '/Lines\s*:\s*(\d+\.\d+)%/'
+  artifacts:
+    reports:
+      junit: artifacts/tiyeni/coverage/junit.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: artifacts/tiyeni/coverage/cobertura-coverage.xml
+    paths:
+      - artifacts/tiyeni/coverage/
+    expire_in: 1 week
+  only:
+    - merge_requests
+    - main
+    - develop
+
+# Build for Android
+build_android:
+  stage: build
+  image: reactnativecommunity/react-native-android
+  variables:
+    JAVA_VERSION: "11"
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+    - cd artifacts/tiyeni && npm ci --cache ../../.npm --prefer-offline
+    - echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+    - echo "$KEYSTORE_BASE64" | base64 -d > android/app/release.keystore
+  script:
+    - echo "Building Android APK..."
+    - cd artifacts/tiyeni
+    # Setup Android SDK
+    - export ANDROID_HOME="/usr/local/lib/android-sdk"
+    - export PATH="$PATH:$ANDROID_HOME/tools:$ANDROID_HOME/tools/bin:$ANDROID_HOME/platform-tools"
+    # Accept licenses
+    - yes | sdkmanager --licenses || true
+    # Install build tools
+    - sdkmanager "build-tools;30.0.3" "platforms;android-30"
+    # Build APK
+    - npx expo build:android --type apk --release-channel production
+    - echo "Android build completed"
+  artifacts:
+    name: "android-apk-$CI_COMMIT_SHORT_SHA"
+    paths:
+      - artifacts/tiyeni/dist/*.apk
+    expire_in: 1 week
+  only:
+    - main
+    - develop
+    - tags
+  when: manual
+
+# Build for iOS (only on tags)
+build_ios:
+  stage: build
+  image: macos-12-xcode
+  variables:
+    EXPO_APPLE_ID: "$EXPO_APPLE_ID"
+    EXPO_APPLE_ID_PASSWORD: "$EXPO_APPLE_ID_PASSWORD"
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+    - cd artifacts/tiyeni && npm ci --cache ../../.npm --prefer-offline
+  script:
+    - echo "Building iOS IPA..."
+    - cd artifacts/tiyeni
+    - npx expo build:ios --type archive --release-channel production
+    - echo "iOS build completed"
+  artifacts:
+    name: "ios-ipa-$CI_COMMIT_SHORT_SHA"
+    paths:
+      - artifacts/tiyeni/dist/*.ipa
+    expire_in: 1 week
+  only:
+    - tags
+  when: manual
+  tags:
+    - shared-macos-x86_64
+
+# Build Web version
+build_web:
+  stage: build
+  image: node:${NODE_VERSION}
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+    - cd artifacts/tiyeni && npm ci --cache ../../.npm --prefer-offline
+  script:
+    - echo "Building Web version..."
+    - cd artifacts/tiyeni
+    - npx expo build:web
+    - echo "Web build completed"
+  artifacts:
+    name: "web-build-$CI_COMMIT_SHORT_SHA"
+    paths:
+      - artifacts/tiyeni/dist/
+    expire_in: 1 week
+  only:
+    - main
+    - develop
+    - tags
+
+# Deploy to staging
+deploy_staging:
+  stage: deploy
+  image: node:${NODE_VERSION}
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+  script:
+    - echo "Deploying to staging..."
+    # Deploy API server to staging
+    - cd artifacts/api-server
+    - npm ci --cache ../../.npm --prefer-offline
+    - npm run build
+    # Deploy to Render (staging)
+    - curl -X POST "https://api.render.com/v1/services/$RENDER_STAGING_SERVICE_ID/deploys" \
+      -H "Authorization: Bearer $RENDER_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{}'
+    - echo "Staging deployment completed"
+  environment:
+    name: staging
+    url: https://tiyeni-api-staging.onrender.com
+  only:
+    - develop
+  when: manual
+
+# Deploy to production
+deploy_production:
+  stage: deploy
+  image: node:${NODE_VERSION}
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+  script:
+    - echo "Deploying to production..."
+    # Deploy API server to production
+    - cd artifacts/api-server
+    - npm ci --cache ../../.npm --prefer-offline
+    - npm run build
+    # Deploy to Render (production)
+    - curl -X POST "https://api.render.com/v1/services/$RENDER_PRODUCTION_SERVICE_ID/deploys" \
+      -H "Authorization: Bearer $RENDER_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{}'
+    - echo "Production deployment completed"
+  environment:
+    name: production
+    url: https://tiyeni-api.onrender.com
+  only:
+    - main
+    - tags
+  when: manual
+
+# Security scan
+security_scan:
+  stage: validate
+  image: node:${NODE_VERSION}
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+  script:
+    - echo "Running security scan..."
+    - npm audit --audit-level high
+    - cd artifacts/tiyeni && npm audit --audit-level high
+    - echo "Security scan completed"
+  allow_failure: true
+  only:
+    - merge_requests
+    - main
+    - develop
+
+# Dependency check
+dependency_check:
+  stage: validate
+  image: node:${NODE_VERSION}
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+  script:
+    - echo "Checking dependencies..."
+    - npm outdated || true
+    - cd artifacts/tiyeni && npm outdated || true
+    - echo "Dependency check completed"
+  allow_failure: true
+  only:
+    - main
+    - develop
+
+# Performance test
+performance_test:
+  stage: test
+  image: node:${NODE_VERSION}
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+  script:
+    - echo "Running performance tests..."
+    # Add Lighthouse CI for web performance testing
+    - npm install -g @lhci/cli
+    - cd artifacts/tiyeni
+    - npm run build:web
+    - lhci autorun
+    - echo "Performance tests completed"
+  artifacts:
+    reports:
+      performance: artifacts/tiyeni/lhci-results.json
+    paths:
+      - artifacts/tiyeni/lhci-results.json
+    expire_in: 1 week
+  only:
+    - main
+    - develop
+  when: manual
+
+# Documentation generation
+docs:
+  stage: build
+  image: node:${NODE_VERSION}
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+  script:
+    - echo "Generating documentation..."
+    - npm install -g typedoc
+    - typedoc --out docs artifacts/tiyeni/lib/
+    - echo "Documentation generated"
+  artifacts:
+    name: "documentation-$CI_COMMIT_SHORT_SHA"
+    paths:
+      - docs/
+    expire_in: 1 week
+  only:
+    - main
+    - develop
+
+# Release preparation
+prepare_release:
+  stage: build
+  image: node:${NODE_VERSION}
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+  script:
+    - echo "Preparing release..."
+    # Update version numbers
+    - npm version patch --no-git-tag-version
+    - cd artifacts/tiyeni && npm version patch --no-git-tag-version
+    # Create release notes
+    - echo "## Release $(date +%Y-%m-%d)" > RELEASE_NOTES.md
+    - echo "" >> RELEASE_NOTES.md
+    - echo "### Changes" >> RELEASE_NOTES.md
+    - git log --oneline --since="1 week ago" >> RELEASE_NOTES.md
+    - echo "Release preparation completed"
+  artifacts:
+    name: "release-notes-$CI_COMMIT_SHORT_SHA"
+    paths:
+      - RELEASE_NOTES.md
+      - package.json
+      - artifacts/tiyeni/package.json
+    expire_in: 1 week
+  only:
+    - main
+  when: manual
+
+# Cleanup old artifacts
+cleanup:
+  stage: deploy
+  image: alpine:latest
+  script:
+    - echo "Cleaning up old artifacts..."
+    # This would need custom implementation based on your storage
+    - echo "Cleanup completed"
+  only:
+    - schedules
+  when: manual

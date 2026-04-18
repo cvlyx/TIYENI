@@ -1,5 +1,5 @@
 import React from "react";
-import { View, StyleSheet, ViewStyle } from "react-native";
+import { View, StyleSheet, ViewStyle, Platform, AccessibilityRole } from "react-native";
 import { useColors } from "@/hooks/useColors";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -8,9 +8,20 @@ interface GlassCardProps {
   style?: ViewStyle;
   glow?: boolean;
   variant?: "default" | "elevated" | "subtle";
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
+  accessibilityRole?: AccessibilityRole;
 }
 
-export function GlassCard({ children, style, glow = false, variant = "default" }: GlassCardProps) {
+export function GlassCard({ 
+  children, 
+  style, 
+  glow = false, 
+  variant = "default",
+  accessibilityLabel,
+  accessibilityHint,
+  accessibilityRole
+}: GlassCardProps) {
   const colors = useColors();
 
   const getGlassStyle = () => {
@@ -51,14 +62,32 @@ export function GlassCard({ children, style, glow = false, variant = "default" }
     }
   };
 
+  // Optimize blur effect for performance
+  const getBlurStyle = () => {
+    if (Platform.OS === 'android') {
+      // Reduce blur complexity on older Android devices
+      return { backdropFilter: 'blur(6px)' };
+    } else if (Platform.OS === 'ios') {
+      return { backdropFilter: 'blur(8px)' };
+    } else {
+      // Web - use CSS blur
+      return { backdropFilter: 'blur(10px)' };
+    }
+  };
+
   return (
     <View
       style={[
         styles.container,
         getGlassStyle(),
+        getBlurStyle(),
         { borderRadius: colors.radius },
         style,
       ]}
+      accessible={!!accessibilityLabel}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
+      accessibilityRole={accessibilityRole}
     >
       {glow && (
         <View

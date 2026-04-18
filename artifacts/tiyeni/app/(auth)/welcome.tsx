@@ -1,4 +1,3 @@
-import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
@@ -13,319 +12,298 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useColors } from "@/hooks/useColors";
 
 const { width, height } = Dimensions.get("window");
 
 const SLIDES = [
   {
     tag: "TRANSPORT",
+    emoji: "🚗",
     title: "Move anything,\nanywhere.",
-    subtitle:
-      "Connect with real people making real trips across Malawi. Fast, safe, and affordable.",
-    icon: "car",
+    subtitle: "Connect with real people making real trips across Malawi. Fast, safe, and affordable.",
+    accent: "#34D399",
   },
   {
     tag: "PARCELS",
+    emoji: "📦",
     title: "Send parcels\nwith trust.",
-    subtitle:
-      "ID-verified carriers. Rating system. OTP delivery confirmation. Every package accountable.",
-    icon: "box",
+    subtitle: "ID-verified carriers. Rating system. OTP delivery confirmation. Every package accountable.",
+    accent: "#F59E0B",
   },
   {
     tag: "EARN",
+    emoji: "💰",
     title: "Your trip,\nyour income.",
-    subtitle:
-      "Offer seats or parcel space on your next journey. Earn money you were leaving on the table.",
-    icon: "profit",
+    subtitle: "Offer seats or parcel space on your next journey. Earn money you were leaving on the table.",
+    accent: "#818CF8",
   },
 ];
 
-function FloatingOrb({
-  x,
-  y,
-  size,
-  color,
-  delay,
-}: {
-  x: number;
-  y: number;
-  size: number;
-  color: string;
-  delay: number;
-}) {
-  const anim = useRef(new Animated.Value(0)).current;
+// Palette
+const C = {
+  bg: "#071A0F",
+  bgMid: "#0D2B18",
+  green1: "#059669",
+  green2: "#10B981",
+  green3: "#34D399",
+  amber: "#F59E0B",
+  indigo: "#818CF8",
+  white: "#FFFFFF",
+  white60: "rgba(255,255,255,0.6)",
+  white30: "rgba(255,255,255,0.3)",
+  white12: "rgba(255,255,255,0.12)",
+  white08: "rgba(255,255,255,0.08)",
+  glass: "rgba(16,185,129,0.12)",
+  glassBorder: "rgba(52,211,153,0.25)",
+};
 
+function Orb({ x, y, size, color, delay }: { x: number; y: number; size: number; color: string; delay: number }) {
+  const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(anim, {
-          toValue: 1,
-          duration: 3000 + delay * 200,
-          useNativeDriver: false,
-        }),
-        Animated.timing(anim, {
-          toValue: 0,
-          duration: 3000 + delay * 200,
-          useNativeDriver: false,
-        }),
+        Animated.timing(anim, { toValue: 1, duration: 4000 + delay * 300, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 0, duration: 4000 + delay * 300, useNativeDriver: true }),
       ])
     ).start();
   }, []);
-
-  const translateY = anim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, -18],
-  });
-
+  const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: [0, -22] });
+  const scale = anim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [1, 1.08, 1] });
   return (
     <Animated.View
-      style={[
-        styles.orb,
-        {
-          left: x,
-          top: y,
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          backgroundColor: color,
-          transform: [{ translateY }],
-        },
-      ]}
+      style={{
+        position: "absolute", left: x, top: y,
+        width: size, height: size, borderRadius: size / 2,
+        backgroundColor: color,
+        transform: [{ translateY }, { scale }],
+      }}
     />
   );
 }
 
-function GlassCard({ children, style }: { children: React.ReactNode; style?: any }) {
-  if (Platform.OS === "ios") {
-    return (
-      <BlurView intensity={18} tint="light" style={[styles.glassCard, style]}>
-        {children}
-      </BlurView>
-    );
-  }
+function FeatureRow({ icon, text }: { icon: string; text: string }) {
   return (
-    <View style={[styles.glassCard, styles.glassCardFallback, style]}>
-      {children}
+    <View style={styles.featureRow}>
+      <Text style={styles.featureIcon}>{icon}</Text>
+      <Text style={styles.featureText}>{text}</Text>
     </View>
   );
 }
 
-function StatChip({ value, label }: { value: string; label: string }) {
-  const scale = useRef(new Animated.Value(0.6)).current;
-  const opacity = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.spring(scale, { toValue: 1, useNativeDriver: false, delay: 600 }),
-      Animated.timing(opacity, { toValue: 1, duration: 500, delay: 600, useNativeDriver: false }),
-    ]).start();
-  }, []);
-
-  return (
-    <Animated.View style={{ transform: [{ scale }], opacity }}>
-      <GlassCard style={styles.statChip}>
-        <Text style={styles.statValue}>{value}</Text>
-        <Text style={styles.statLabel}>{label}</Text>
-      </GlassCard>
-    </Animated.View>
-  );
-}
-
 export default function WelcomeScreen() {
-  const colors = useColors();
   const insets = useSafeAreaInsets();
-  const [currentSlide, setCurrentSlide] = useState(0);
+  const [slide, setSlide] = useState(0);
 
+  const heroOpacity = useRef(new Animated.Value(0)).current;
+  const heroY = useRef(new Animated.Value(50)).current;
+  const sheetOpacity = useRef(new Animated.Value(0)).current;
+  const sheetY = useRef(new Animated.Value(60)).current;
   const contentOpacity = useRef(new Animated.Value(1)).current;
   const contentY = useRef(new Animated.Value(0)).current;
-  const tagScale = useRef(new Animated.Value(1)).current;
-  const heroOpacity = useRef(new Animated.Value(0)).current;
-  const heroY = useRef(new Animated.Value(40)).current;
-  const btnOpacity = useRef(new Animated.Value(0)).current;
-  const btnY = useRef(new Animated.Value(30)).current;
+  const emojiScale = useRef(new Animated.Value(0.5)).current;
+  const emojiOpacity = useRef(new Animated.Value(0)).current;
 
-  const topPadding = Platform.OS === "web" ? insets.top + 67 : insets.top;
+  const topPad = Platform.OS === "web" ? insets.top + 67 : insets.top;
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(heroOpacity, { toValue: 1, duration: 700, useNativeDriver: false }),
-      Animated.spring(heroY, { toValue: 0, useNativeDriver: false, tension: 60, friction: 10 }),
+      Animated.timing(heroOpacity, { toValue: 1, duration: 800, useNativeDriver: true }),
+      Animated.spring(heroY, { toValue: 0, tension: 55, friction: 10, useNativeDriver: true }),
     ]).start();
     Animated.parallel([
-      Animated.timing(btnOpacity, { toValue: 1, duration: 600, delay: 400, useNativeDriver: false }),
-      Animated.spring(btnY, { toValue: 0, delay: 400, useNativeDriver: false }),
+      Animated.timing(sheetOpacity, { toValue: 1, duration: 700, delay: 300, useNativeDriver: true }),
+      Animated.spring(sheetY, { toValue: 0, tension: 55, friction: 10, delay: 300, useNativeDriver: true }),
     ]).start();
+    animateEmoji();
   }, []);
+
+  const animateEmoji = () => {
+    emojiScale.setValue(0.5);
+    emojiOpacity.setValue(0);
+    Animated.parallel([
+      Animated.spring(emojiScale, { toValue: 1, tension: 80, friction: 8, useNativeDriver: true }),
+      Animated.timing(emojiOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+    ]).start();
+  };
 
   const goToSlide = (idx: number) => {
     Animated.parallel([
-      Animated.timing(contentOpacity, { toValue: 0, duration: 180, useNativeDriver: false }),
-      Animated.timing(contentY, { toValue: -16, duration: 180, useNativeDriver: false }),
+      Animated.timing(contentOpacity, { toValue: 0, duration: 150, useNativeDriver: true }),
+      Animated.timing(contentY, { toValue: -12, duration: 150, useNativeDriver: true }),
     ]).start(() => {
-      setCurrentSlide(idx);
-      contentY.setValue(20);
+      setSlide(idx);
+      contentY.setValue(16);
+      animateEmoji();
       Animated.parallel([
-        Animated.timing(contentOpacity, { toValue: 1, duration: 280, useNativeDriver: false }),
-        Animated.spring(contentY, { toValue: 0, useNativeDriver: false, tension: 80, friction: 10 }),
+        Animated.timing(contentOpacity, { toValue: 1, duration: 250, useNativeDriver: true }),
+        Animated.spring(contentY, { toValue: 0, tension: 80, friction: 10, useNativeDriver: true }),
       ]).start();
     });
   };
 
   const handleNext = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (currentSlide < SLIDES.length - 1) {
-      goToSlide(currentSlide + 1);
+    if (slide < SLIDES.length - 1) {
+      goToSlide(slide + 1);
     } else {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      router.push("/(auth)/login");
+      router.push("/(auth)/register");
     }
   };
 
-  const slide = SLIDES[currentSlide];
+  const current = SLIDES[slide];
 
   return (
-    <View style={styles.container}>
+    <View style={styles.root}>
       <LinearGradient
-        colors={["#0D2B12", "#1A4A1E", "#2E7D32", "#388E3C"]}
-        locations={[0, 0.35, 0.7, 1]}
+        colors={[C.bg, C.bgMid, "#0F3D22"]}
+        locations={[0, 0.5, 1]}
         style={StyleSheet.absoluteFill}
       />
 
-      {/* Decorative floating orbs */}
-      <FloatingOrb x={-40} y={height * 0.1} size={200} color="rgba(76,175,80,0.18)" delay={0} />
-      <FloatingOrb x={width * 0.55} y={height * 0.05} size={160} color="rgba(245,158,11,0.12)" delay={2} />
-      <FloatingOrb x={width * 0.2} y={height * 0.35} size={120} color="rgba(255,255,255,0.06)" delay={1} />
-      <FloatingOrb x={-20} y={height * 0.55} size={100} color="rgba(76,175,80,0.1)" delay={3} />
-      <FloatingOrb x={width * 0.7} y={height * 0.5} size={140} color="rgba(245,158,11,0.08)" delay={1} />
+      {/* Background orbs */}
+      <Orb x={-60} y={height * 0.08} size={220} color="rgba(16,185,129,0.12)" delay={0} />
+      <Orb x={width * 0.6} y={height * 0.04} size={180} color="rgba(245,158,11,0.08)" delay={2} />
+      <Orb x={width * 0.15} y={height * 0.3} size={140} color="rgba(129,140,248,0.07)" delay={1} />
+      <Orb x={width * 0.65} y={height * 0.45} size={160} color="rgba(52,211,153,0.07)" delay={3} />
+      <Orb x={-30} y={height * 0.6} size={120} color="rgba(16,185,129,0.08)" delay={4} />
 
-      {/* Top section */}
-      <View style={[styles.topSection, { paddingTop: topPadding + 12 }]}>
-        <Animated.View style={{ opacity: heroOpacity, transform: [{ translateY: heroY }] }}>
-          <View style={styles.logoRow}>
-            <GlassCard style={styles.logoBubble}>
-              <View style={styles.logoInner}>
-                <Text style={styles.logoLetter}>T</Text>
-              </View>
-            </GlassCard>
+      {/* Hero section */}
+      <Animated.View
+        style={[styles.hero, { paddingTop: topPad + 16, opacity: heroOpacity, transform: [{ translateY: heroY }] }]}
+      >
+        {/* Logo */}
+        <View style={styles.logoRow}>
+          <LinearGradient colors={[C.green2, C.green1]} style={styles.logoBadge}>
+            <Text style={styles.logoLetter}>T</Text>
+          </LinearGradient>
+          <View>
             <Text style={styles.appName}>Tiyeni</Text>
+            <Text style={styles.appTagline}>Malawi's ride & parcel network</Text>
           </View>
+        </View>
 
-          {/* Stats row */}
-          <View style={styles.statsRow}>
-            <StatChip value="12K+" label="Users" />
-            <StatChip value="38" label="Districts" />
-            <StatChip value="4.8★" label="Rated" />
-          </View>
+        {/* Stats */}
+        <View style={styles.statsRow}>
+          {[
+            { v: "12K+", l: "Users" },
+            { v: "38", l: "Districts" },
+            { v: "4.8★", l: "Rating" },
+          ].map((s) => (
+            <View key={s.l} style={styles.statPill}>
+              <Text style={styles.statVal}>{s.v}</Text>
+              <Text style={styles.statLbl}>{s.l}</Text>
+            </View>
+          ))}
+        </View>
 
-          {/* Route visual */}
-          <Animated.View style={{ opacity: heroOpacity }}>
-            <GlassCard style={styles.routeCard}>
-              <View style={styles.routeRow}>
-                <View style={styles.routePoint}>
-                  <View style={[styles.routeDot, { backgroundColor: "#4CAF50" }]} />
-                  <View style={styles.routeTextCol}>
-                    <Text style={styles.routeSmall}>FROM</Text>
-                    <Text style={styles.routeCity}>Lilongwe</Text>
-                  </View>
-                </View>
-
-                <View style={styles.routeLineContainer}>
-                  <View style={styles.routeLineTrack} />
-                  <View style={[styles.routeArrow, { backgroundColor: "rgba(245,158,11,0.9)" }]}>
-                    <Text style={styles.routeArrowText}>→</Text>
-                  </View>
-                </View>
-
-                <View style={styles.routePoint}>
-                  <View style={[styles.routeDot, { backgroundColor: "#F59E0B" }]} />
-                  <View style={styles.routeTextCol}>
-                    <Text style={styles.routeSmall}>TO</Text>
-                    <Text style={styles.routeCity}>Blantyre</Text>
-                  </View>
-                </View>
-              </View>
-
-              <View style={styles.routeFooter}>
-                <View style={[styles.routeTag, { backgroundColor: "rgba(76,175,80,0.25)" }]}>
-                  <Text style={styles.routeTagText}>2 seats</Text>
-                </View>
-                <View style={[styles.routeTag, { backgroundColor: "rgba(245,158,11,0.2)" }]}>
-                  <Text style={[styles.routeTagText, { color: "#F59E0B" }]}>MWK 15,000</Text>
-                </View>
-                <View style={[styles.routeTag, { backgroundColor: "rgba(255,255,255,0.12)" }]}>
-                  <Text style={styles.routeTagText}>Verified ✓</Text>
-                </View>
-              </View>
-            </GlassCard>
-          </Animated.View>
-        </Animated.View>
-      </View>
-
-      {/* Bottom sheet */}
-      <Animated.View style={[styles.sheet, { opacity: btnOpacity, transform: [{ translateY: btnY }] }]}>
-        {Platform.OS === "ios" ? (
-          <BlurView intensity={30} tint="light" style={StyleSheet.absoluteFill} />
-        ) : (
-          <View style={[StyleSheet.absoluteFill, styles.sheetFallback]} />
-        )}
-
-        <View style={styles.sheetContent}>
-          <View style={styles.sheetHandle} />
-
-          {/* Slide content */}
-          <Animated.View style={{ opacity: contentOpacity, transform: [{ translateY: contentY }] }}>
-            <View style={[styles.tagRow]}>
-              <View style={styles.slideBadge}>
-                <Text style={styles.slideBadgeText}>{slide.tag}</Text>
+        {/* Route card */}
+        <View style={styles.routeCard}>
+          <View style={styles.routeInner}>
+            <View style={styles.routePoint}>
+              <View style={[styles.routeDot, { backgroundColor: C.green3 }]} />
+              <View>
+                <Text style={styles.routeLabel}>FROM</Text>
+                <Text style={styles.routeCity}>Lilongwe</Text>
               </View>
             </View>
-            <Text style={styles.slideTitle}>{slide.title}</Text>
-            <Text style={styles.slideSubtitle}>{slide.subtitle}</Text>
-          </Animated.View>
-
-          {/* Dots */}
-          <View style={styles.dotsRow}>
-            {SLIDES.map((_, i) => (
-              <Pressable key={i} onPress={() => goToSlide(i)}>
-                <Animated.View
-                  style={[
-                    styles.dot,
-                    {
-                      backgroundColor:
-                        i === currentSlide ? colors.primary : colors.border,
-                      width: i === currentSlide ? 28 : 8,
-                    },
-                  ]}
-                />
-              </Pressable>
-            ))}
+            <View style={styles.routeMiddle}>
+              <View style={styles.routeLine} />
+              <View style={[styles.routeArrowBubble, { backgroundColor: C.amber }]}>
+                <Text style={styles.routeArrow}>→</Text>
+              </View>
+              <View style={styles.routeLine} />
+            </View>
+            <View style={styles.routePoint}>
+              <View style={[styles.routeDot, { backgroundColor: C.amber }]} />
+              <View>
+                <Text style={styles.routeLabel}>TO</Text>
+                <Text style={styles.routeCity}>Blantyre</Text>
+              </View>
+            </View>
           </View>
+          <View style={styles.routeTags}>
+            <View style={[styles.routeTag, { backgroundColor: "rgba(52,211,153,0.18)" }]}>
+              <Text style={[styles.routeTagTxt, { color: C.green3 }]}>2 seats</Text>
+            </View>
+            <View style={[styles.routeTag, { backgroundColor: "rgba(245,158,11,0.18)" }]}>
+              <Text style={[styles.routeTagTxt, { color: C.amber }]}>MWK 15,000</Text>
+            </View>
+            <View style={[styles.routeTag, { backgroundColor: C.white08 }]}>
+              <Text style={[styles.routeTagTxt, { color: C.white60 }]}>✓ Verified</Text>
+            </View>
+          </View>
+        </View>
+      </Animated.View>
 
-          {/* CTA Buttons */}
-          <Pressable
-            onPress={handleNext}
-            style={({ pressed }) => [
-              styles.primaryBtn,
-              { backgroundColor: colors.primary, opacity: pressed ? 0.88 : 1 },
-            ]}
-          >
-            <Text style={styles.primaryBtnText}>
-              {currentSlide < SLIDES.length - 1 ? "Continue" : "Get Started"}
-            </Text>
-          </Pressable>
+      {/* Bottom sheet */}
+      <Animated.View
+        style={[styles.sheet, { opacity: sheetOpacity, transform: [{ translateY: sheetY }] }]}
+      >
+        <View style={styles.sheetHandle} />
 
-          <Pressable
-            onPress={() => router.push("/(auth)/login")}
-            style={styles.ghostBtn}
+        {/* Slide content */}
+        <Animated.View style={{ opacity: contentOpacity, transform: [{ translateY: contentY }] }}>
+          <View style={styles.slideTop}>
+            <Animated.Text
+              style={[styles.slideEmoji, { opacity: emojiOpacity, transform: [{ scale: emojiScale }] }]}
+            >
+              {current.emoji}
+            </Animated.Text>
+            <View style={[styles.slideBadge, { borderColor: current.accent + "55", backgroundColor: current.accent + "18" }]}>
+              <Text style={[styles.slideBadgeTxt, { color: current.accent }]}>{current.tag}</Text>
+            </View>
+          </View>
+          <Text style={styles.slideTitle}>{current.title}</Text>
+          <Text style={styles.slideSub}>{current.subtitle}</Text>
+        </Animated.View>
+
+        {/* Dots */}
+        <View style={styles.dotsRow}>
+          {SLIDES.map((s, i) => (
+            <Pressable key={i} onPress={() => goToSlide(i)} hitSlop={8}>
+              <Animated.View
+                style={[
+                  styles.dot,
+                  {
+                    backgroundColor: i === slide ? s.accent : C.white30,
+                    width: i === slide ? 28 : 8,
+                  },
+                ]}
+              />
+            </Pressable>
+          ))}
+        </View>
+
+        {/* CTA */}
+        <Pressable
+          onPress={handleNext}
+          style={({ pressed }) => [styles.primaryBtn, { opacity: pressed ? 0.85 : 1 }]}
+        >
+          <LinearGradient
+            colors={[C.green2, C.green1]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.primaryBtnGrad}
           >
-            <Text style={[styles.ghostBtnText, { color: colors.mutedForeground }]}>
-              Already have an account?{" "}
-              <Text style={{ color: colors.primary, fontFamily: "Inter_600SemiBold" }}>
-                Sign in
-              </Text>
+            <Text style={styles.primaryBtnTxt}>
+              {slide < SLIDES.length - 1 ? "Continue →" : "Get Started"}
             </Text>
-          </Pressable>
+          </LinearGradient>
+        </Pressable>
+
+        <Pressable onPress={() => router.push("/(auth)/login")} style={styles.ghostBtn}>
+          <Text style={styles.ghostBtnTxt}>
+            Already have an account?{" "}
+            <Text style={{ color: C.green3, fontFamily: "Inter_600SemiBold" }}>Sign in</Text>
+          </Text>
+        </Pressable>
+
+        {/* Features */}
+        <View style={styles.featuresBox}>
+          <FeatureRow icon="🔒" text="OTP-verified deliveries" />
+          <FeatureRow icon="⭐" text="Trusted rating system" />
+          <FeatureRow icon="📍" text="All 38 districts covered" />
         </View>
       </Animated.View>
     </View>
@@ -333,254 +311,116 @@ export default function WelcomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0D2B12" },
-  topSection: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
+  root: { flex: 1, backgroundColor: C.bg },
 
-  // Orbs
-  orb: {
-    position: "absolute",
+  hero: {
+    flex: 1,
+    paddingHorizontal: 22,
+    paddingBottom: 16,
   },
 
   // Logo
-  logoRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    marginBottom: 28,
+  logoRow: { flexDirection: "row", alignItems: "center", gap: 14, marginBottom: 24 },
+  logoBadge: {
+    width: 48, height: 48, borderRadius: 15,
+    alignItems: "center", justifyContent: "center",
+    shadowColor: C.green2, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.5, shadowRadius: 10, elevation: 6,
   },
-  logoBubble: {
-    width: 42,
-    height: 42,
-    borderRadius: 13,
-    padding: 0,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-  },
-  logoInner: {
-    width: 42,
-    height: 42,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  logoLetter: {
-    color: "#fff",
-    fontSize: 22,
-    fontFamily: "Inter_700Bold",
-  },
-  appName: {
-    color: "#fff",
-    fontSize: 26,
-    fontFamily: "Inter_700Bold",
-    letterSpacing: -0.5,
-  },
+  logoLetter: { color: C.white, fontSize: 24, fontFamily: "Inter_700Bold" },
+  appName: { color: C.white, fontSize: 22, fontFamily: "Inter_700Bold", letterSpacing: -0.4 },
+  appTagline: { color: C.white60, fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 1 },
 
   // Stats
-  statsRow: {
-    flexDirection: "row",
-    gap: 10,
-    marginBottom: 20,
+  statsRow: { flexDirection: "row", gap: 10, marginBottom: 20 },
+  statPill: {
+    flex: 1, alignItems: "center", paddingVertical: 10,
+    backgroundColor: C.white08, borderRadius: 14,
+    borderWidth: 1, borderColor: C.glassBorder,
   },
-  statChip: {
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 14,
-    gap: 2,
-  },
-  statValue: {
-    color: "#fff",
-    fontSize: 17,
-    fontFamily: "Inter_700Bold",
-  },
-  statLabel: {
-    color: "rgba(255,255,255,0.6)",
-    fontSize: 11,
-    fontFamily: "Inter_400Regular",
-  },
+  statVal: { color: C.white, fontSize: 16, fontFamily: "Inter_700Bold" },
+  statLbl: { color: C.white60, fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 1 },
 
   // Route card
   routeCard: {
+    backgroundColor: C.white08,
     borderRadius: 20,
+    borderWidth: 1,
+    borderColor: C.glassBorder,
     padding: 16,
   },
-  routeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 12,
-  },
-  routePoint: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    flex: 1,
-  },
-  routeDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  routeTextCol: { gap: 1 },
-  routeSmall: {
-    color: "rgba(255,255,255,0.5)",
-    fontSize: 9,
-    fontFamily: "Inter_600SemiBold",
-    letterSpacing: 1,
-  },
-  routeCity: {
-    color: "#fff",
-    fontSize: 15,
-    fontFamily: "Inter_700Bold",
-  },
-  routeLineContainer: {
-    flex: 1,
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 4,
-  },
-  routeLineTrack: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "rgba(255,255,255,0.2)",
-  },
-  routeArrow: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  routeArrowText: {
-    color: "#fff",
-    fontSize: 14,
-  },
-  routeFooter: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  routeTag: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-  },
-  routeTagText: {
-    color: "rgba(255,255,255,0.85)",
-    fontSize: 12,
-    fontFamily: "Inter_500Medium",
-  },
+  routeInner: { flexDirection: "row", alignItems: "center", marginBottom: 14 },
+  routePoint: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
+  routeDot: { width: 10, height: 10, borderRadius: 5 },
+  routeLabel: { color: C.white30, fontSize: 9, fontFamily: "Inter_600SemiBold", letterSpacing: 1.2 },
+  routeCity: { color: C.white, fontSize: 15, fontFamily: "Inter_700Bold" },
+  routeMiddle: { flex: 1, flexDirection: "row", alignItems: "center", gap: 4 },
+  routeLine: { flex: 1, height: 1, backgroundColor: C.white12 },
+  routeArrowBubble: { width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center" },
+  routeArrow: { color: C.white, fontSize: 13, fontFamily: "Inter_700Bold" },
+  routeTags: { flexDirection: "row", gap: 8 },
+  routeTag: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
+  routeTagTxt: { fontSize: 12, fontFamily: "Inter_500Medium" },
 
-  // Glass card
-  glassCard: {
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.18)",
-    overflow: "hidden",
-  },
-  glassCardFallback: {
-    backgroundColor: "rgba(255,255,255,0.12)",
-  },
-
-  // Bottom sheet
+  // Sheet
   sheet: {
+    backgroundColor: "rgba(7,26,15,0.96)",
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
-    overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.15)",
+    borderColor: C.glassBorder,
     borderBottomWidth: 0,
-  },
-  sheetFallback: {
-    backgroundColor: "rgba(10,30,12,0.88)",
-  },
-  sheetContent: {
-    padding: 24,
-    paddingBottom: 36,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 32,
   },
   sheetHandle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: "rgba(255,255,255,0.25)",
+    width: 40, height: 4, borderRadius: 2,
+    backgroundColor: C.white30,
     alignSelf: "center",
-    marginBottom: 24,
+    marginBottom: 22,
   },
 
-  // Slide content
-  tagRow: {
-    flexDirection: "row",
-    marginBottom: 12,
-  },
+  // Slide
+  slideTop: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 },
+  slideEmoji: { fontSize: 36 },
   slideBadge: {
-    backgroundColor: "rgba(46,125,50,0.4)",
-    borderWidth: 1,
-    borderColor: "rgba(76,175,80,0.4)",
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 20,
+    paddingHorizontal: 12, paddingVertical: 4,
+    borderRadius: 20, borderWidth: 1,
   },
-  slideBadgeText: {
-    color: "#81C784",
-    fontSize: 11,
-    fontFamily: "Inter_600SemiBold",
-    letterSpacing: 1.5,
-  },
+  slideBadgeTxt: { fontSize: 11, fontFamily: "Inter_600SemiBold", letterSpacing: 1.5 },
   slideTitle: {
-    color: "#fff",
-    fontSize: 30,
-    fontFamily: "Inter_700Bold",
-    lineHeight: 36,
-    marginBottom: 10,
-    letterSpacing: -0.5,
+    color: C.white, fontSize: 28, fontFamily: "Inter_700Bold",
+    lineHeight: 34, letterSpacing: -0.5, marginBottom: 8,
   },
-  slideSubtitle: {
-    color: "rgba(255,255,255,0.6)",
-    fontSize: 15,
-    fontFamily: "Inter_400Regular",
-    lineHeight: 22,
-    marginBottom: 24,
+  slideSub: {
+    color: C.white60, fontSize: 14, fontFamily: "Inter_400Regular",
+    lineHeight: 21, marginBottom: 20,
   },
 
   // Dots
-  dotsRow: {
-    flexDirection: "row",
-    gap: 6,
-    marginBottom: 24,
-  },
-  dot: {
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "rgba(255,255,255,0.3)",
-  },
+  dotsRow: { flexDirection: "row", gap: 6, marginBottom: 22 },
+  dot: { height: 6, borderRadius: 3 },
 
   // Buttons
   primaryBtn: {
+    borderRadius: 16, overflow: "hidden", marginBottom: 14,
+    shadowColor: C.green1, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.45, shadowRadius: 14, elevation: 8,
+  },
+  primaryBtnGrad: { paddingVertical: 16, alignItems: "center" },
+  primaryBtnTxt: { color: C.white, fontSize: 16, fontFamily: "Inter_700Bold", letterSpacing: 0.3 },
+  ghostBtn: { alignItems: "center", paddingVertical: 4, marginBottom: 20 },
+  ghostBtnTxt: { color: C.white60, fontSize: 14, fontFamily: "Inter_400Regular" },
+
+  // Features
+  featuresBox: {
+    backgroundColor: C.white08,
     borderRadius: 16,
-    paddingVertical: 16,
-    alignItems: "center",
-    marginBottom: 14,
-    shadowColor: "#2E7D32",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.5,
-    shadowRadius: 12,
-    elevation: 6,
+    borderWidth: 1,
+    borderColor: C.glassBorder,
+    padding: 14,
+    gap: 10,
   },
-  primaryBtnText: {
-    color: "#fff",
-    fontSize: 16,
-    fontFamily: "Inter_700Bold",
-    letterSpacing: 0.3,
-  },
-  ghostBtn: {
-    alignItems: "center",
-    paddingVertical: 4,
-  },
-  ghostBtnText: {
-    fontSize: 14,
-    fontFamily: "Inter_400Regular",
-  },
+  featureRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  featureIcon: { fontSize: 16 },
+  featureText: { color: C.white60, fontSize: 13, fontFamily: "Inter_400Regular" },
 });

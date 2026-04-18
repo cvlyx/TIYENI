@@ -9,20 +9,43 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
-import { useColors } from "@/hooks/useColors";
 
-function GlassInput({ value, onChangeText, placeholder, keyboardType, secureTextEntry, rightElement }: any) {
+const C = {
+  bg: "#071A0F",
+  green1: "#059669",
+  green2: "#10B981",
+  green3: "#34D399",
+  amber: "#F59E0B",
+  white: "#FFFFFF",
+  white70: "rgba(255,255,255,0.7)",
+  white50: "rgba(255,255,255,0.5)",
+  white30: "rgba(255,255,255,0.3)",
+  white12: "rgba(255,255,255,0.12)",
+  white08: "rgba(255,255,255,0.08)",
+  glassBorder: "rgba(52,211,153,0.25)",
+};
+
+function GlassInput({
+  value, onChangeText, placeholder, keyboardType, secureTextEntry, rightElement, icon,
+}: any) {
   const focusAnim = useRef(new Animated.Value(0)).current;
-  const borderColor = focusAnim.interpolate({ inputRange: [0, 1], outputRange: ["rgba(255,255,255,0.15)", "rgba(76,175,80,0.8)"] });
-  const backgroundColor = focusAnim.interpolate({ inputRange: [0, 1], outputRange: ["rgba(255,255,255,0.08)", "rgba(76,175,80,0.1)"] });
+  const borderColor = focusAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["rgba(255,255,255,0.12)", "rgba(52,211,153,0.7)"],
+  });
+  const bgColor = focusAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["rgba(255,255,255,0.06)", "rgba(16,185,129,0.08)"],
+  });
   return (
-    <Animated.View style={[styles.inputWrap, { borderColor, backgroundColor }]}>
+    <Animated.View style={[styles.inputWrap, { borderColor, backgroundColor: bgColor }]}>
+      {icon && <Ionicons name={icon} size={18} color={C.white30} style={{ marginRight: 4 }} />}
       <TextInput
         style={styles.textInput}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor="rgba(255,255,255,0.35)"
+        placeholderTextColor={C.white30}
         keyboardType={keyboardType}
         autoCapitalize="none"
         secureTextEntry={secureTextEntry}
@@ -42,7 +65,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const topPadding = Platform.OS === "web" ? insets.top + 67 : insets.top;
+  const topPad = Platform.OS === "web" ? insets.top + 67 : insets.top;
 
   const handleLogin = async () => {
     if (!identifier.trim()) { showToast("Enter your email or username", "error"); return; }
@@ -52,7 +75,6 @@ export default function LoginScreen() {
       await login(identifier.trim(), password);
       router.replace("/(tabs)/");
     } catch (e: any) {
-      // If phone not verified, redirect to OTP
       if (e?.message?.includes("not verified") || e?.phone) {
         showToast("Please verify your phone first", "info");
         router.push({ pathname: "/(auth)/otp", params: { phone: e?.phone ?? "", name: "", devCode: e?.devCode ?? "" } } as any);
@@ -66,30 +88,38 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <LinearGradient colors={["#0D2B12", "#1A4A1E", "#2E7D32"]} style={StyleSheet.absoluteFill} />
-      <ScrollView contentContainerStyle={[styles.scroll, { paddingTop: topPadding + 16 }]} keyboardShouldPersistTaps="handled">
+      <LinearGradient colors={[C.bg, "#0D2B18", "#0F3D22"]} style={StyleSheet.absoluteFill} />
+
+      <ScrollView
+        contentContainerStyle={[styles.scroll, { paddingTop: topPad + 16 }]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <View style={styles.backCircle}>
-            <Ionicons name="arrow-back" size={20} color="#fff" />
+            <Ionicons name="arrow-back" size={20} color={C.white} />
           </View>
         </Pressable>
 
+        {/* Header */}
         <View style={styles.header}>
-          <View style={styles.iconWrap}>
-            <Ionicons name="lock-closed-outline" size={28} color="#4CAF50" />
-          </View>
+          <LinearGradient colors={[C.green2, C.green1]} style={styles.iconBadge}>
+            <Ionicons name="lock-closed" size={26} color={C.white} />
+          </LinearGradient>
           <Text style={styles.title}>Welcome back</Text>
-          <Text style={styles.subtitle}>Sign in with your email or username</Text>
+          <Text style={styles.subtitle}>Sign in to your Tiyeni account</Text>
         </View>
 
+        {/* Form */}
         <View style={styles.form}>
           <View>
             <Text style={styles.label}>Email or Username</Text>
             <GlassInput
               value={identifier}
               onChangeText={setIdentifier}
-              placeholder="you@example.com or username"
+              placeholder="you@example.com or @username"
               keyboardType="email-address"
+              icon="person-outline"
             />
           </View>
           <View>
@@ -99,26 +129,53 @@ export default function LoginScreen() {
               onChangeText={setPassword}
               placeholder="Your password"
               secureTextEntry={!showPassword}
+              icon="key-outline"
               rightElement={
-                <Pressable onPress={() => setShowPassword(!showPassword)}>
-                  <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={18} color="rgba(255,255,255,0.5)" />
+                <Pressable onPress={() => setShowPassword(!showPassword)} hitSlop={8}>
+                  <Ionicons
+                    name={showPassword ? "eye-off-outline" : "eye-outline"}
+                    size={18}
+                    color={C.white50}
+                  />
                 </Pressable>
               }
             />
           </View>
 
-          <Pressable onPress={handleLogin} disabled={isLoading} style={({ pressed }) => [styles.btn, { opacity: pressed || isLoading ? 0.8 : 1 }]}>
-            <LinearGradient colors={["#388E3C", "#2E7D32"]} style={styles.btnGradient}>
-              <Text style={styles.btnText}>{isLoading ? "Signing in..." : "Sign In"}</Text>
+          <Pressable
+            onPress={handleLogin}
+            disabled={isLoading}
+            style={({ pressed }) => [styles.btn, { opacity: pressed || isLoading ? 0.8 : 1 }]}
+          >
+            <LinearGradient
+              colors={[C.green2, C.green1]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.btnGrad}
+            >
+              <Text style={styles.btnTxt}>{isLoading ? "Signing in..." : "Sign In"}</Text>
             </LinearGradient>
           </Pressable>
 
-          <Pressable onPress={() => router.push("/(auth)/register")} style={styles.linkRow}>
-            <Text style={styles.linkText}>
-              No account?{" "}
-              <Text style={{ color: "#81C784", fontFamily: "Inter_600SemiBold" }}>Create one</Text>
-            </Text>
+          {/* Divider */}
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerTxt}>or</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <Pressable onPress={() => router.push("/(auth)/register")} style={styles.outlineBtn}>
+            <Text style={styles.outlineBtnTxt}>Create a new account</Text>
           </Pressable>
+        </View>
+
+        {/* Trust badges */}
+        <View style={styles.trustRow}>
+          {["🔒 Secure", "📱 OTP Verified", "🇲🇼 Malawi"].map((t) => (
+            <View key={t} style={styles.trustBadge}>
+              <Text style={styles.trustTxt}>{t}</Text>
+            </View>
+          ))}
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -128,19 +185,53 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scroll: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 60 },
-  backBtn: { marginBottom: 32 },
-  backCircle: { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.12)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.15)" },
-  header: { alignItems: "center", marginBottom: 40 },
-  iconWrap: { width: 64, height: 64, borderRadius: 20, backgroundColor: "rgba(76,175,80,0.15)", borderWidth: 1, borderColor: "rgba(76,175,80,0.3)", alignItems: "center", justifyContent: "center", marginBottom: 20 },
-  title: { color: "#fff", fontSize: 26, fontFamily: "Inter_700Bold", marginBottom: 8, letterSpacing: -0.3 },
-  subtitle: { color: "rgba(255,255,255,0.55)", fontSize: 15, fontFamily: "Inter_400Regular", textAlign: "center" },
-  form: { gap: 14 },
-  label: { color: "rgba(255,255,255,0.5)", fontSize: 12, fontFamily: "Inter_600SemiBold", letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 6 },
-  inputWrap: { flexDirection: "row", alignItems: "center", borderRadius: 14, borderWidth: 1, paddingHorizontal: 16, paddingVertical: 14, overflow: "hidden", gap: 12 },
-  textInput: { flex: 1, color: "#fff", fontSize: 16, fontFamily: "Inter_400Regular" },
-  btn: { borderRadius: 14, overflow: "hidden", marginTop: 4, shadowColor: "#2E7D32", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.5, shadowRadius: 12, elevation: 6 },
-  btnGradient: { paddingVertical: 16, alignItems: "center" },
-  btnText: { color: "#fff", fontSize: 16, fontFamily: "Inter_700Bold" },
-  linkRow: { alignItems: "center", paddingTop: 8 },
-  linkText: { color: "rgba(255,255,255,0.5)", fontSize: 14, fontFamily: "Inter_400Regular" },
+  backBtn: { marginBottom: 28 },
+  backCircle: {
+    width: 42, height: 42, borderRadius: 21,
+    backgroundColor: C.white08, borderWidth: 1, borderColor: C.white12,
+    alignItems: "center", justifyContent: "center",
+  },
+  header: { alignItems: "center", marginBottom: 36 },
+  iconBadge: {
+    width: 72, height: 72, borderRadius: 22,
+    alignItems: "center", justifyContent: "center",
+    marginBottom: 20,
+    shadowColor: C.green1, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.5, shadowRadius: 14, elevation: 8,
+  },
+  title: { color: C.white, fontSize: 26, fontFamily: "Inter_700Bold", marginBottom: 6, letterSpacing: -0.4 },
+  subtitle: { color: C.white50, fontSize: 15, fontFamily: "Inter_400Regular", textAlign: "center" },
+  form: { gap: 16 },
+  label: {
+    color: C.white50, fontSize: 11, fontFamily: "Inter_600SemiBold",
+    letterSpacing: 1, textTransform: "uppercase", marginBottom: 7,
+  },
+  inputWrap: {
+    flexDirection: "row", alignItems: "center",
+    borderRadius: 14, borderWidth: 1,
+    paddingHorizontal: 16, paddingVertical: 14,
+    gap: 10,
+  },
+  textInput: { flex: 1, color: C.white, fontSize: 15, fontFamily: "Inter_400Regular" },
+  btn: {
+    borderRadius: 14, overflow: "hidden", marginTop: 4,
+    shadowColor: C.green1, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.45, shadowRadius: 14, elevation: 8,
+  },
+  btnGrad: { paddingVertical: 16, alignItems: "center" },
+  btnTxt: { color: C.white, fontSize: 16, fontFamily: "Inter_700Bold" },
+  divider: { flexDirection: "row", alignItems: "center", gap: 12 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: C.white12 },
+  dividerTxt: { color: C.white30, fontSize: 13, fontFamily: "Inter_400Regular" },
+  outlineBtn: {
+    borderRadius: 14, borderWidth: 1, borderColor: C.glassBorder,
+    paddingVertical: 15, alignItems: "center",
+    backgroundColor: C.white08,
+  },
+  outlineBtnTxt: { color: C.green3, fontSize: 15, fontFamily: "Inter_600SemiBold" },
+  trustRow: { flexDirection: "row", gap: 8, justifyContent: "center", marginTop: 32, flexWrap: "wrap" },
+  trustBadge: {
+    paddingHorizontal: 12, paddingVertical: 6,
+    borderRadius: 20, backgroundColor: C.white08,
+    borderWidth: 1, borderColor: C.white12,
+  },
+  trustTxt: { color: C.white50, fontSize: 12, fontFamily: "Inter_400Regular" },
 });

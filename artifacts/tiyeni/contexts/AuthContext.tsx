@@ -1,6 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { secureStorage, SecureStorage } from "@/lib/secureStorageFixed";
+import { notificationService } from "@/lib/emailService";
 
 export type UserRole = "guest" | "basic" | "verified" | "admin";
 
@@ -38,18 +40,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const restore = async () => {
       try {
-        const token = await AsyncStorage.getItem(TOKEN_KEY);
-        if (token) {
-          const { user: u } = await api.me();
-          setUser(u);
-        } else {
-          // Fallback to cached user for offline
-          const raw = await AsyncStorage.getItem(USER_KEY);
-          if (raw) setUser(JSON.parse(raw));
+        // Try to get user from secure storage first
+        const userData = await secureStorage.getUserData();
+        if (userData) {
+          setUser(userData);
         }
-      } catch {
-        const raw = await AsyncStorage.getItem(USER_KEY);
-        if (raw) setUser(JSON.parse(raw));
+        
+        // Try to get tokens and validate them
+        const accessToken = await secureStorage.getAccessToken();
+        if (accessToken) {
+          try {
+            const { user: u } = await api.me();
+            setUser(u);
+            await secureStorage.setUserData(u);
+          } catch (error) {
+            // Token might be expired, try refresh
+            console.log('Token validation failed, clearing tokens');
+            await secureStorage.clearTokens();
+          }
+        }
+      } catch (error) {
+        console.error('Auth restoration failed:', error);
       } finally {
         setIsLoading(false);
       }
@@ -63,14 +74,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const verifyOtp = useCallback(async (phone: string, otp: string, name?: string) => {
+    // Validate inputs
+    const phoneValidation = SecureStorage.validatePhone(phone);
+    const otpValidation = SecureStorage.validateOTP(otp);
+    
+    if (!phoneValidation.isValid) {
+      throw new Error(phoneValidation.errors.join(', '));
+    }
+    
+    if (!otpValidation.isValid) {
+      throw new Error(otpValidation.errors.join(', '));
+    }
+
     const { user: u, accessToken, refreshToken, token } = await api.verifyPhone(phone, otp);
-    await AsyncStorage.setItem(TOKEN_KEY, accessToken || token);
-    await AsyncStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-    await AsyncStorage.setItem(USER_KEY, JSON.stringify(u));
+    
+    // Store tokens securely
+    await secureStorage.setTokens(accessToken || token, refreshToken);
+    await secureStorage.setUserData(u);
     setUser(u);
+    
+    // Send welcome email if user is newly verified
+    if (u.email) {
+      await notificationService.sendWelcomeEmail(u.email, u.name);
+    }
   }, []);
 
   const login = useCallback(async (identifier: string, password: string) => {
+    // Validate inputs
+    if (!identifier.trim()) {
+      throw new Error('Email or username is required');
+    }
+    
+    const passwordValidation = SecureStorage.validatePassword(password);
+    if (!passwordValidation.isValid) {
+      throw new Error(passwordValidation.errors.join(', '));
+    }
+
     const res = await api.login(identifier, password) as any;
     if (res.error) {
       const err: any = new Error(res.error);
@@ -78,16 +117,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       err.devCode = res.devCode;
       throw err;
     }
+    
     const { user: u, accessToken, refreshToken, token } = res;
-    await AsyncStorage.setItem(TOKEN_KEY, accessToken || token);
-    await AsyncStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-    await AsyncStorage.setItem(USER_KEY, JSON.stringify(u));
+    
+    // Store tokens securely
+    await secureStorage.setTokens(accessToken || token, refreshToken);
+    await secureStorage.setUserData(u);
     setUser(u);
   }, []);
 
   const logout = useCallback(async () => {
-    await api.logout().catch(() => undefined);
-    await AsyncStorage.multiRemove([TOKEN_KEY, REFRESH_TOKEN_KEY, USER_KEY]);
+    try {
+      await api.logout();
+    } catch (error) {
+      console.error('Logout API call failed:', error);
+    }
+    
+    // Clear all secure storage
+    await secureStorage.clearTokens();
+    await secureStorage.clearUserData();
     setUser(null);
   }, []);
 
@@ -97,14 +145,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (updates.name) {
         const { user: updated } = await api.updateProfile({ name: updates.name });
         const merged = { ...user, ...updated };
-        await AsyncStorage.setItem(USER_KEY, JSON.stringify(merged));
+        await secureStorage.setUserData(merged);
         setUser(merged);
         return;
       }
-    } catch {}
+    } catch (error) {
+      console.error('Profile update failed:', error);
+    }
     // Fallback to local update
     const updated = { ...user, ...updates };
-    await AsyncStorage.setItem(USER_KEY, JSON.stringify(updated));
+    await secureStorage.setUserData(updated);
     setUser(updated);
   }, [user]);
 

@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useState, useCallback } from "react";
 import {
@@ -19,6 +20,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 
 type FilterTab = "all" | "trips" | "parcels";
+
+const FILTER_ICONS: Record<FilterTab, string> = {
+  all: "apps-outline",
+  trips: "car-outline",
+  parcels: "cube-outline",
+};
 
 export default function HomeScreen() {
   const colors = useColors();
@@ -48,28 +55,39 @@ export default function HomeScreen() {
     </AnimatedListItem>
   );
 
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { paddingTop: topPadding + 16, backgroundColor: colors.primary }]}>
+      {/* Header with gradient */}
+      <LinearGradient
+        colors={["#059669", "#10B981", "#34D399"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.header, { paddingTop: topPadding + 16 }]}
+      >
         <View style={styles.headerTop}>
-          <View>
+          <View style={styles.greetingCol}>
+            <Text style={styles.greetingSmall}>{greeting} 👋</Text>
             <Text style={styles.greeting}>
-              {user ? `Hello, ${user.name.split(" ")[0]}` : "Browse Tiyeni"}
+              {user ? user.name.split(" ")[0] : "Tiyeni"}
             </Text>
-            <Text style={styles.locationText}>
-              <Ionicons name="location" size={13} color="rgba(255,255,255,0.8)" /> Malawi
-            </Text>
+            <View style={styles.locationRow}>
+              <Ionicons name="location" size={12} color="rgba(255,255,255,0.85)" />
+              <Text style={styles.locationText}>Malawi</Text>
+            </View>
           </View>
           <View style={styles.headerActions}>
             <Pressable
               onPress={() => router.push("/search" as any)}
-              style={[styles.iconBtn, { backgroundColor: "rgba(255,255,255,0.15)" }]}
+              style={styles.iconBtn}
             >
               <Ionicons name="search" size={20} color="#fff" />
             </Pressable>
             <Pressable
               onPress={() => router.push("/notifications" as any)}
-              style={[styles.iconBtn, { backgroundColor: "rgba(255,255,255,0.15)" }]}
+              style={styles.iconBtn}
             >
               <Ionicons name="notifications-outline" size={20} color="#fff" />
               {unreadNotifications > 0 && (
@@ -83,29 +101,31 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Quick route browse chips */}
+        {/* Quick action */}
         <Pressable
-          onPress={() => router.push("/routes" as any)}
-          style={styles.routeBrowseBtn}
+          onPress={() => router.push("/search" as any)}
+          style={styles.searchBar}
         >
-          <Ionicons name="map-outline" size={14} color="rgba(255,255,255,0.9)" />
-          <Text style={styles.routeBrowseText}>Browse popular routes →</Text>
+          <Ionicons name="search-outline" size={16} color="rgba(255,255,255,0.7)" />
+          <Text style={styles.searchBarTxt}>Search trips or parcels...</Text>
         </Pressable>
 
+        {/* Filter tabs */}
         <View style={styles.filterRow}>
           {(["all", "trips", "parcels"] as FilterTab[]).map((tab) => (
             <Pressable
               key={tab}
               onPress={() => setFilter(tab)}
-              style={[
-                styles.filterTab,
-                filter === tab && styles.filterTabActive,
-              ]}
+              style={[styles.filterTab, filter === tab && styles.filterTabActive]}
             >
+              <Ionicons
+                name={FILTER_ICONS[tab] as any}
+                size={14}
+                color={filter === tab ? "#059669" : "rgba(255,255,255,0.8)"}
+              />
               <Text
                 style={[
                   styles.filterTabText,
-                  { color: filter === tab ? colors.primary : "rgba(255,255,255,0.75)" },
                   filter === tab && styles.filterTabTextActive,
                 ]}
               >
@@ -114,7 +134,7 @@ export default function HomeScreen() {
             </Pressable>
           ))}
         </View>
-      </View>
+      </LinearGradient>
 
       {isLoading && !refreshing ? (
         <View style={styles.skeletonList}>
@@ -139,11 +159,19 @@ export default function HomeScreen() {
           ]}
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Ionicons name="search-outline" size={52} color={colors.border} />
-              <Text style={[styles.emptyTitle, { color: colors.foreground }]}>Nothing here yet</Text>
+              <View style={[styles.emptyIcon, { backgroundColor: colors.secondary }]}>
+                <Ionicons name="map-outline" size={40} color={colors.primary} />
+              </View>
+              <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No listings yet</Text>
               <Text style={[styles.emptySubtitle, { color: colors.mutedForeground }]}>
                 Be the first to post a trip or parcel request
               </Text>
+              <Pressable
+                onPress={() => router.push("/(post)/" as any)}
+                style={[styles.emptyBtn, { backgroundColor: colors.primary }]}
+              >
+                <Text style={styles.emptyBtnTxt}>Post now</Text>
+              </Pressable>
             </View>
           }
           showsVerticalScrollIndicator={false}
@@ -158,17 +186,21 @@ const styles = StyleSheet.create({
   header: { paddingBottom: 0 },
   headerTop: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    marginBottom: 12,
+    paddingHorizontal: 18,
+    marginBottom: 14,
   },
-  greeting: { color: "#fff", fontSize: 20, fontFamily: "Inter_700Bold", marginBottom: 2 },
-  locationText: { color: "rgba(255,255,255,0.75)", fontSize: 13, fontFamily: "Inter_400Regular" },
-  headerActions: { flexDirection: "row", gap: 10 },
+  greetingCol: { gap: 2 },
+  greetingSmall: { color: "rgba(255,255,255,0.8)", fontSize: 13, fontFamily: "Inter_400Regular" },
+  greeting: { color: "#fff", fontSize: 22, fontFamily: "Inter_700Bold", letterSpacing: -0.3 },
+  locationRow: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 2 },
+  locationText: { color: "rgba(255,255,255,0.8)", fontSize: 12, fontFamily: "Inter_400Regular" },
+  headerActions: { flexDirection: "row", gap: 10, marginTop: 4 },
   iconBtn: {
-    width: 38, height: 38, borderRadius: 19,
+    width: 40, height: 40, borderRadius: 20,
     alignItems: "center", justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.18)",
     position: "relative",
   },
   notifBadge: {
@@ -179,34 +211,42 @@ const styles = StyleSheet.create({
     paddingHorizontal: 3,
   },
   notifBadgeText: { color: "#fff", fontSize: 9, fontFamily: "Inter_700Bold" },
-  routeBrowseBtn: {
-    flexDirection: "row", alignItems: "center", gap: 6,
-    marginHorizontal: 16, marginBottom: 12,
-    paddingHorizontal: 14, paddingVertical: 8,
-    backgroundColor: "rgba(255,255,255,0.12)",
-    borderRadius: 20,
-    alignSelf: "flex-start",
+
+  // Search bar
+  searchBar: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    marginHorizontal: 18, marginBottom: 14,
+    paddingHorizontal: 16, paddingVertical: 11,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    borderRadius: 14,
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.25)",
   },
-  routeBrowseText: { color: "rgba(255,255,255,0.9)", fontSize: 13, fontFamily: "Inter_500Medium" },
+  searchBarTxt: { color: "rgba(255,255,255,0.7)", fontSize: 14, fontFamily: "Inter_400Regular" },
+
+  // Filter
   filterRow: {
     flexDirection: "row",
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
     gap: 8,
-    paddingBottom: 14,
+    paddingBottom: 16,
   },
   filterTab: {
-    paddingHorizontal: 16,
-    paddingVertical: 7,
+    flexDirection: "row", alignItems: "center", gap: 5,
+    paddingHorizontal: 14, paddingVertical: 7,
     borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.12)",
+    backgroundColor: "rgba(255,255,255,0.15)",
   },
   filterTabActive: { backgroundColor: "#fff" },
-  filterTabText: { fontSize: 13, fontFamily: "Inter_500Medium" },
-  filterTabTextActive: { color: "#2E7D32", fontFamily: "Inter_600SemiBold" },
+  filterTabText: { fontSize: 13, fontFamily: "Inter_500Medium", color: "rgba(255,255,255,0.85)" },
+  filterTabTextActive: { color: "#059669", fontFamily: "Inter_600SemiBold" },
+
   skeletonList: { paddingTop: 16 },
-  list: { paddingTop: 8 },
-  emptyState: { alignItems: "center", justifyContent: "center", paddingTop: 80, gap: 12, paddingHorizontal: 40 },
+  list: { paddingTop: 10 },
+  emptyState: { alignItems: "center", justifyContent: "center", paddingTop: 80, gap: 14, paddingHorizontal: 40 },
+  emptyIcon: { width: 80, height: 80, borderRadius: 24, alignItems: "center", justifyContent: "center" },
   emptyTitle: { fontSize: 18, fontFamily: "Inter_600SemiBold" },
   emptySubtitle: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 20 },
+  emptyBtn: { paddingHorizontal: 24, paddingVertical: 12, borderRadius: 14, marginTop: 4 },
+  emptyBtnTxt: { color: "#fff", fontSize: 15, fontFamily: "Inter_600SemiBold" },
 });
 

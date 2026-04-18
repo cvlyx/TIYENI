@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import config from "@/config/environments";
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:8080/api";
+const BASE_URL = config.apiUrl;
 const REFRESH_TOKEN_KEY = "tiyeni_refresh_token";
 const TOKEN_KEY = "tiyeni_token";
 
@@ -12,44 +13,58 @@ async function getRefreshToken(): Promise<string | null> {
   return AsyncStorage.getItem(REFRESH_TOKEN_KEY);
 }
 
-async function request<T>(path: string, options: RequestInit = {}, retries = 1): Promise<T> {
+async function request<T>(path: string, options: RequestInit = {}, retries = config.retryAttempts): Promise<T> {
   const token = await getToken();
-  const res = await fetch(`${BASE_URL}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(options.headers ?? {}),
-    },
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), config.apiTimeout);
 
-  // Auto-refresh on 401
-  if (res.status === 401 && retries > 0) {
-    try {
-      const refreshToken = await getRefreshToken();
-      if (refreshToken) {
-        const refreshRes = await fetch(`${BASE_URL}/auth/refresh`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ refreshToken }),
-        });
-        if (refreshRes.ok) {
-          const { accessToken, refreshToken: newRefresh } = await refreshRes.json();
-          await AsyncStorage.setItem(TOKEN_KEY, accessToken);
-          await AsyncStorage.setItem(REFRESH_TOKEN_KEY, newRefresh);
-          return request<T>(path, options, 0);
+  try {
+    const res = await fetch(`${BASE_URL}${path}`, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(options.headers ?? {}),
+      },
+    });
+
+    clearTimeout(timeoutId);
+
+    // Auto-refresh on 401
+    if (res.status === 401 && retries > 0) {
+      try {
+        const refreshToken = await getRefreshToken();
+        if (refreshToken) {
+          const refreshRes = await fetch(`${BASE_URL}/auth/refresh`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ refreshToken }),
+          });
+          if (refreshRes.ok) {
+            const { accessToken, refreshToken: newRefresh } = await refreshRes.json();
+            await AsyncStorage.setItem(TOKEN_KEY, accessToken);
+            await AsyncStorage.setItem(REFRESH_TOKEN_KEY, newRefresh);
+            return request<T>(path, options, 0);
+          }
         }
-      }
-    } catch {}
-    // Clear tokens if refresh failed
-    await AsyncStorage.multiRemove([TOKEN_KEY, REFRESH_TOKEN_KEY]);
-  }
+      } catch {}
+      // Clear tokens if refresh failed
+      await AsyncStorage.multiRemove([TOKEN_KEY, REFRESH_TOKEN_KEY]);
+    }
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error ?? "Request failed");
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(err.error ?? "Request failed");
+    }
+    return res.json() as Promise<T>;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Request timeout');
+    }
+    throw error;
   }
-  return res.json() as Promise<T>;
 }
 
 export const api = {
